@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
 import {
   ZONAS_DISPONIBLES,
   TERMINOS_INMOBILIARIOS,
@@ -175,7 +176,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ resultados, nuevos: resultados.length });
+    // Save results to Supabase
+    let guardados = 0;
+    for (const r of resultados) {
+      const { error } = await supabase.from("prospectos").insert({
+        fecha: r.fecha,
+        zona: r.zona,
+        rol: r.rol,
+        calificado: r.calificado,
+        precio_usd: r.precio_usd,
+        metros: r.metros,
+        precio_m2: r.precio_m2,
+        urgencia_score: r.urgencia_score,
+        servicios: r.servicios,
+        telefono: r.telefono,
+        whatsapp_link: r.whatsapp_link,
+        titulo: r.titulo,
+        detalle: r.detalle,
+        enlace: r.enlace,
+      });
+      if (!error) guardados++;
+    }
+
+    return NextResponse.json({ resultados, nuevos: guardados });
   } catch (error) {
     return NextResponse.json({ error: "Error interno", resultados: [] }, { status: 500 });
   }
