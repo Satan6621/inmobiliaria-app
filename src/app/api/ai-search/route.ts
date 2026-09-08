@@ -82,7 +82,7 @@ Reglas:
           "X-Title": "Venezuela Inmobiliaria",
         },
         body: JSON.stringify({
-          model: "mistralai/mistral-7b-instruct:free",
+          model: "google/gemma-2-9b-it:free",
           messages: [
             { role: "system", content: "Eres un experto en bienes raíces venezolanos. Solo respondes con JSON válido." },
             { role: "user", content: prompt },
@@ -93,20 +93,49 @@ Reglas:
       });
 
       if (!fallbackResponse.ok) {
-        const fallbackError = await fallbackResponse.text();
-        return NextResponse.json({
-          resultados: [{
-            titulo: "Error en API de IA",
-            precio: 0,
-            ubicacion: `Status: ${fallbackResponse.status}`,
-            tipo: "Error",
-            telefono: "",
-            servicios: [],
-            resumen: `Error: ${fallbackError.substring(0, 200)}`,
-            fuente: "Sistema",
-            score_calidad: 0,
-          }],
+        // Try third model
+        const thirdResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`,
+            "HTTP-Referer": "https://venezuela-inmobiliaria.vercel.app",
+            "X-Title": "Venezuela Inmobiliaria",
+          },
+          body: JSON.stringify({
+            model: "qwen/qwen-2-7b-instruct:free",
+            messages: [
+              { role: "system", content: "Eres un experto en bienes raíces venezolanos. Solo respondes con JSON válido." },
+              { role: "user", content: prompt },
+            ],
+            temperature: 0.7,
+            max_tokens: 2048,
+          }),
         });
+
+        if (!thirdResponse.ok) {
+          const thirdError = await thirdResponse.text();
+          return NextResponse.json({
+            resultados: [{
+              titulo: "Error en API de IA",
+              precio: 0,
+              ubicacion: `Status: ${thirdResponse.status}`,
+              tipo: "Error",
+              telefono: "",
+              servicios: [],
+              resumen: `Error: ${thirdError.substring(0, 200)}`,
+              fuente: "Sistema",
+              score_calidad: 0,
+            }],
+          });
+        }
+
+        const thirdData = await thirdResponse.json();
+        const thirdText = thirdData.choices?.[0]?.message?.content || "";
+        const thirdJsonMatch = thirdText.match(/\[[\s\S]*?\]/);
+        if (thirdJsonMatch) {
+          return NextResponse.json({ resultados: JSON.parse(thirdJsonMatch[0]) });
+        }
       }
 
       const fallbackData = await fallbackResponse.json();
