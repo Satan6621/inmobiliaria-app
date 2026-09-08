@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const FREE_MODELS = [
+  "google/gemma-4-26b-a4b-it:free",
+  "nvidia/nemotron-3.5-lightning:free",
+  "nvidia/nemotron-3-ultra-550b-a55b:free",
+];
+
 export async function POST(request: NextRequest) {
   try {
     const { query } = await request.json();
@@ -14,7 +20,7 @@ export async function POST(request: NextRequest) {
           tipo: "Info",
           telefono: "",
           servicios: [],
-          resumen: "Necesitas agregar tu API key de OpenRouter en las variables de entorno. Obtén una gratis en https://openrouter.ai/keys",
+          resumen: "Necesitas agregar tu API key de OpenRouter. Obtén una gratis en https://openrouter.ai/keys",
           fuente: "Sistema",
           score_calidad: 0,
         }],
@@ -25,17 +31,17 @@ export async function POST(request: NextRequest) {
 
 Búsqueda: "${query}"
 
-Genera exactamente 5 propiedades realistas con este formato JSON (sin texto adicional, solo el JSON):
+Genera exactamente 5 propiedades realistas con este formato JSON (solo el JSON, nada más):
 
 [
   {
-    "titulo": "Descriptive title of the property",
+    "titulo": "Título descriptivo de la propiedad",
     "precio": 35000,
-    "ubicacion": "Address, City, State, Venezuela",
+    "ubicacion": "Dirección, Ciudad, Estado, Venezuela",
     "tipo": "Apartamento/Casa/Townhouse/Terreno",
     "telefono": "0414-1234567",
     "servicios": ["Pozo", "Planta", "Fibra"],
-    "resumen": "Brief 1-2 line description",
+    "resumen": "Descripción breve de 1-2 líneas",
     "fuente": "Facebook Marketplace",
     "score_calidad": 85
   }
@@ -44,57 +50,15 @@ Genera exactamente 5 propiedades realistas con este formato JSON (sin texto adic
 Reglas:
 - Precios realistas en USD para Venezuela (5000-300000)
 - Teléfonos venezolanos (0414, 0424, 0412, 0212)
-- Ciudades reales: Valencia, Caracas, Maracaibo, Barquisimeto, Maracay, etc.
-- Servicios comunes: Pozo, Planta, Fibra, Gas Directo
-- Score de 0-100 basado en completitud de datos
-- Solo responde con el JSON, nada más`;
+- Ciudades reales: Valencia, Caracas, Maracaibo, Barquisimeto, Maracay
+- Servicios: Pozo, Planta, Fibra, Gas Directo
+- Score 0-100
+- Solo JSON, sin texto adicional`;
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-        "HTTP-Referer": "https://venezuela-inmobiliaria.vercel.app",
-        "X-Title": "Venezuela Inmobiliaria",
-      },
-      body: JSON.stringify({
-        model: "meta-llama/llama-3.1-8b-instruct:free",
-        messages: [
-          { role: "system", content: "Eres un experto en bienes raíces venezolanos. Solo respondes con JSON válido." },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.7,
-        max_tokens: 2048,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("OpenRouter API error:", response.status, errorText);
-
-      // Try fallback model
-      const fallbackResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`,
-          "HTTP-Referer": "https://venezuela-inmobiliaria.vercel.app",
-          "X-Title": "Venezuela Inmobiliaria",
-        },
-        body: JSON.stringify({
-          model: "google/gemma-2-9b-it:free",
-          messages: [
-            { role: "system", content: "Eres un experto en bienes raíces venezolanos. Solo respondes con JSON válido." },
-            { role: "user", content: prompt },
-          ],
-          temperature: 0.7,
-          max_tokens: 2048,
-        }),
-      });
-
-      if (!fallbackResponse.ok) {
-        // Try third model
-        const thirdResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    // Try each model until one works
+    for (const model of FREE_MODELS) {
+      try {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -103,7 +67,7 @@ Reglas:
             "X-Title": "Venezuela Inmobiliaria",
           },
           body: JSON.stringify({
-            model: "qwen/qwen-2-7b-instruct:free",
+            model,
             messages: [
               { role: "system", content: "Eres un experto en bienes raíces venezolanos. Solo respondes con JSON válido." },
               { role: "user", content: prompt },
@@ -113,59 +77,35 @@ Reglas:
           }),
         });
 
-        if (!thirdResponse.ok) {
-          const thirdError = await thirdResponse.text();
-          return NextResponse.json({
-            resultados: [{
-              titulo: "Error en API de IA",
-              precio: 0,
-              ubicacion: `Status: ${thirdResponse.status}`,
-              tipo: "Error",
-              telefono: "",
-              servicios: [],
-              resumen: `Error: ${thirdError.substring(0, 200)}`,
-              fuente: "Sistema",
-              score_calidad: 0,
-            }],
-          });
+        if (!response.ok) {
+          console.error(`Model ${model} failed:`, response.status);
+          continue;
         }
 
-        const thirdData = await thirdResponse.json();
-        const thirdText = thirdData.choices?.[0]?.message?.content || "";
-        const thirdJsonMatch = thirdText.match(/\[[\s\S]*?\]/);
-        if (thirdJsonMatch) {
-          return NextResponse.json({ resultados: JSON.parse(thirdJsonMatch[0]) });
+        const data = await response.json();
+        const text = data.choices?.[0]?.message?.content || "";
+
+        const jsonMatch = text.match(/\[[\s\S]*?\]/);
+        if (jsonMatch) {
+          const resultados = JSON.parse(jsonMatch[0]);
+          return NextResponse.json({ resultados, model_used: model });
         }
+      } catch (e) {
+        console.error(`Model ${model} error:`, e);
+        continue;
       }
-
-      const fallbackData = await fallbackResponse.json();
-      const fallbackText = fallbackData.choices?.[0]?.message?.content || "";
-      const fallbackJsonMatch = fallbackText.match(/\[[\s\S]*?\]/);
-      if (fallbackJsonMatch) {
-        return NextResponse.json({ resultados: JSON.parse(fallbackJsonMatch[0]) });
-      }
-    }
-
-    const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || "";
-
-    // Parse JSON from response
-    const jsonMatch = text.match(/\[[\s\S]*?\]/);
-    if (jsonMatch) {
-      const resultados = JSON.parse(jsonMatch[0]);
-      return NextResponse.json({ resultados });
     }
 
     return NextResponse.json({
       resultados: [{
-        titulo: "Sin resultados parseables",
+        titulo: "Sin resultados",
         precio: 0,
         ubicacion: "",
         tipo: "Info",
         telefono: "",
         servicios: [],
-        resumen: text.substring(0, 200),
-        fuente: "IA",
+        resumen: "No se pudieron generar resultados. Intenta de nuevo.",
+        fuente: "Sistema",
         score_calidad: 0,
       }],
     });
