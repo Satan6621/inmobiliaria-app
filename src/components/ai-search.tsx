@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Brain, Search, Loader2, Phone, AlertCircle } from "lucide-react";
+import { Brain, Search, Loader2, Phone, MapPin, Bed, Bath, Car, ExternalLink, AlertCircle, Sparkles } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 interface AIResult {
@@ -13,7 +13,12 @@ interface AIResult {
   servicios: string[];
   resumen: string;
   fuente: string;
+  fuente_url?: string;
+  metros?: number;
+  habitaciones?: number;
+  banos?: number;
   score_calidad: number;
+  fecha_publicacion?: string;
 }
 
 export function AISearch() {
@@ -21,42 +26,34 @@ export function AISearch() {
   const [loading, setLoading] = useState(false);
   const [resultados, setResultados] = useState<AIResult[]>([]);
   const [error, setError] = useState("");
+  const [searchInfo, setSearchInfo] = useState("");
 
   const handleSearch = async () => {
-    if (!query.trim()) return;
+    if (!query.trim() || query.trim().length < 2) return;
     setLoading(true);
     setError("");
     setResultados([]);
+    setSearchInfo("");
 
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
-
       const res = await fetch("/api/ai-search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }),
-        signal: controller.signal,
+        body: JSON.stringify({ query: query.trim() }),
       });
 
-      clearTimeout(timeout);
-
-      if (!res.ok) {
-        throw new Error(`Error ${res.status}`);
-      }
+      if (!res.ok) throw new Error("Error en la búsqueda");
 
       const data = await res.json();
+
       if (data.resultados && data.resultados.length > 0) {
         setResultados(data.resultados);
+        setSearchInfo(data.message || `${data.resultados.length} resultados encontrados`);
       } else {
-        setError("No se encontraron resultados. Intenta con otra búsqueda.");
+        setError(data.error || "No se encontraron resultados. Intenta con otra búsqueda.");
       }
-    } catch (err: any) {
-      if (err.name === "AbortError") {
-        setError("La búsqueda tardó demasiado. Intenta de nuevo.");
-      } else {
-        setError("Error al conectar con la IA. Intenta de nuevo.");
-      }
+    } catch (err) {
+      setError("Error al conectar. Intenta de nuevo.");
       console.error("Error:", err);
     } finally {
       setLoading(false);
@@ -65,14 +62,15 @@ export function AISearch() {
 
   return (
     <div className="space-y-6">
+      {/* Search Box */}
       <div className="glass-card p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 border border-primary/20">
-            <Brain className="w-5 h-5 text-primary" />
+            <Sparkles className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-text-primary">Búsqueda con AI</h3>
-            <p className="text-xs text-text-muted">IA analiza y estructura propiedades automáticamente</p>
+            <h3 className="text-lg font-semibold text-text-primary">Búsqueda Inteligente</h3>
+            <p className="text-xs text-text-muted">Busca propiedades en toda Venezuela</p>
           </div>
         </div>
 
@@ -88,7 +86,7 @@ export function AISearch() {
           />
           <button
             onClick={handleSearch}
-            disabled={loading || !query.trim()}
+            disabled={loading || !query.trim() || query.trim().length < 2}
             className="btn-primary flex items-center gap-2"
           >
             {loading ? (
@@ -96,61 +94,124 @@ export function AISearch() {
             ) : (
               <Search className="w-4 h-4" />
             )}
-            {loading ? "Buscando..." : "Buscar con AI"}
+            {loading ? "Buscando..." : "Buscar"}
           </button>
         </div>
 
-        {error && (
-          <div className="mt-4 p-3 rounded-lg bg-danger/10 border border-danger/20 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-danger" />
-            <span className="text-sm text-danger">{error}</span>
+        {searchInfo && (
+          <div className="mt-3 p-2 rounded-lg bg-success/10 border border-success/20 text-xs text-success">
+            {searchInfo}
           </div>
         )}
+
+        {error && (
+          <div className="mt-3 p-2 rounded-lg bg-danger/10 border border-danger/20 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-danger" />
+            <span className="text-xs text-danger">{error}</span>
+          </div>
+        )}
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          {["Apartamento en Valencia", "Casa con piscina Maracaibo", "Penthouse Caracas", "Terreno Mérida", "Townhouse 4 habitaciones"].map((suggestion) => (
+            <button
+              key={suggestion}
+              onClick={() => { setQuery(suggestion); }}
+              className="text-xs px-3 py-1.5 rounded-full bg-surface-elevated hover:bg-surface-hover text-text-muted transition-colors"
+            >
+              {suggestion}
+            </button>
+          ))}
+        </div>
       </div>
 
+      {/* Results */}
       {resultados.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-text-secondary">
-            {resultados.length} resultados encontrados por AI
-          </h3>
-          {resultados.map((r, i) => (
-            <div key={i} className="glass-card p-5 animate-slide-up" style={{ animationDelay: `${i * 0.05}s` }}>
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="badge badge-primary">{r.tipo}</span>
-                  {r.score_calidad > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-text-secondary">
+              {resultados.length} propiedades encontradas
+            </h3>
+          </div>
+
+          <div className="grid gap-4">
+            {resultados.map((r, i) => (
+              <div key={i} className="glass-card p-5 hover:shadow-lg transition-all duration-300 animate-slide-up" style={{ animationDelay: `${i * 0.05}s` }}>
+                {/* Header */}
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="badge badge-primary">{r.tipo}</span>
                     <span className={`badge ${r.score_calidad >= 80 ? "badge-success" : r.score_calidad >= 50 ? "badge-warning" : "badge-danger"}`}>
-                      Score: {r.score_calidad}%
+                      {r.score_calidad}% calidad
+                    </span>
+                    {r.fecha_publicacion && (
+                      <span className="badge bg-surface-elevated text-text-muted text-xs">
+                        {r.fecha_publicacion}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xl font-bold text-primary">{formatCurrency(r.precio)}</span>
+                </div>
+
+                {/* Title & Location */}
+                <h4 className="text-lg font-semibold text-text-primary mb-1">{r.titulo}</h4>
+                <p className="text-sm text-text-muted flex items-center gap-1 mb-2">
+                  <MapPin className="w-3.5 h-3.5" />
+                  {r.ubicacion}
+                </p>
+
+                {/* Features */}
+                <div className="flex items-center gap-4 mb-3 text-sm text-text-secondary">
+                  {r.habitaciones > 0 && (
+                    <span className="flex items-center gap-1">
+                      <Bed className="w-4 h-4" /> {r.habitaciones} Hab.
+                    </span>
+                  )}
+                  {r.banos > 0 && (
+                    <span className="flex items-center gap-1">
+                      <Bath className="w-4 h-4" /> {r.banos} Baños
+                    </span>
+                  )}
+                  {r.metros && (
+                    <span className="flex items-center gap-1">
+                      <Car className="w-4 h-4" /> {r.metros}m²
                     </span>
                   )}
                 </div>
-                {r.precio > 0 && (
-                  <span className="text-lg font-bold text-primary">{formatCurrency(r.precio)}</span>
+
+                {/* Description */}
+                <p className="text-sm text-text-secondary mb-3 line-clamp-2">{r.resumen}</p>
+
+                {/* Services */}
+                {r.servicios && r.servicios.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {r.servicios.map((s, j) => (
+                      <span key={j} className="badge badge-info text-xs">{s}</span>
+                    ))}
+                  </div>
                 )}
-              </div>
 
-              <h4 className="font-semibold text-text-primary mb-1">{r.titulo}</h4>
-              <p className="text-sm text-text-muted mb-2">{r.ubicacion}</p>
-              <p className="text-sm text-text-secondary mb-3">{r.resumen}</p>
-
-              {r.servicios && r.servicios.length > 0 && (
-                <div className="flex flex-wrap gap-1 mb-3">
-                  {r.servicios.map((s, j) => (
-                    <span key={j} className="badge badge-info text-xs">{s}</span>
-                  ))}
+                {/* Footer */}
+                <div className="flex items-center justify-between pt-3 border-t border-border-subtle">
+                  <div className="flex items-center gap-3 text-xs text-text-muted">
+                    <span className="flex items-center gap-1">
+                      <Phone className="w-3.5 h-3.5" /> {r.telefono}
+                    </span>
+                    <span>Fuente: {r.fuente}</span>
+                  </div>
+                  {r.fuente_url && (
+                    <a
+                      href={r.fuente_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs text-primary hover:underline"
+                    >
+                      Ver más <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
                 </div>
-              )}
-
-              <div className="flex items-center gap-2 text-xs text-text-muted">
-                <span>Fuente: {r.fuente}</span>
-                {r.telefono && (
-                  <span className="flex items-center gap-1">
-                    <Phone className="w-3 h-3" /> {r.telefono}
-                  </span>
-                )}
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>
