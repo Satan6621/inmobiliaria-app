@@ -1,223 +1,256 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Download, Copy, User, Building2, MapPin, DollarSign } from "lucide-react";
+import { FileText, Download, User, Home, MapPin, DollarSign, Calendar } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
+interface ContratoData {
+  tipo: string;
+  vendedor: { nombre: string; cedula: string; telefono: string; direccion: string };
+  comprador: { nombre: string; cedula: string; telefono: string; direccion: string };
+  inmueble: { tipo: string; direccion: string; urbanizacion: string; ciudad: string; estado: string; metros: number; habs: number; banos: number; descripcion: string };
+  precio: number;
+  fecha: string;
+  formaPago: string;
+  condiciones: string;
+}
+
 export default function ContratosPage() {
-  const [tipoDoc, setTipoDoc] = useState("autorizacion");
-  const [form, setForm] = useState({
-    nomAsesor: "Red de Inversión Inmobiliaria",
-    ciAsesor: "V-00.000.000",
-    nomCliente: "",
-    ciCliente: "",
-    inmDireccion: "",
-    precioPactado: 35000,
-    honorarios: "5% sobre el precio de cierre o sobreprecio acordado",
+  const [data, setData] = useState<ContratoData>({
+    tipo: "COMPRAVENTA",
+    vendedor: { nombre: "", cedula: "", telefono: "", direccion: "" },
+    comprador: { nombre: "", cedula: "", telefono: "", direccion: "" },
+    inmueble: { tipo: "Apartamento", direccion: "", urbanizacion: "", ciudad: "", estado: "", metros: 0, habs: 0, banos: 0, descripcion: "" },
+    precio: 0,
+    fecha: new Date().toISOString().split("T")[0],
+    formaPago: "CONTADO",
+    condiciones: "El presente contrato se celebra de conformidad con las disposiciones de la Ley Orgánica de Hacienda Pública Municipal y la legislación vigente.",
   });
 
-  const fechaFormateada = new Date().toLocaleDateString("es-VE", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  const generarContrato = () => {
+    const contrato = `
+CONTRATO DE ${data.tipo}
+N° ${Date.now().toString().slice(-6)}
 
-  const documentoAutorizacion = `DOCUMENTO PRIVADO DE AUTORIZACIÓN DE PROMOCIÓN INMOBILIARIA
+Entre las partes:
 
-Entre el ciudadano(a) ${form.nomCliente || "[Nombre del Propietario]"}, titular de la Cédula de Identidad N° ${form.ciCliente || "[C.I.]"}, actuando en su carácter de legítimo propietario del inmueble ubicado en:
-${form.inmDireccion || "[Dirección del Inmueble]"}.
-Y por la otra parte, el ciudadano(a) ${form.nomAsesor}, titular de la Cédula de Identidad N° ${form.ciAsesor}, en su condición de Intermediario Inmobiliario independiente.
+EL/LA VENDEDOR(A):
+Nombre: ${data.vendedor.nombre}
+Cédula: ${data.vendedor.cedula}
+Teléfono: ${data.vendedor.telefono}
+Dirección: ${data.vendedor.direccion}
 
-Se ha convenido lo siguiente:
-PRIMERA: EL PROPIETARIO autoriza a EL INTERMEDIARIO, de forma NO EXCLUSIVA, a promover y comercializar el inmueble antes descrito, fijando como precio neto de venta la cantidad de: ${formatCurrency(form.precioPactado)} DÓLARES AMERICANOS (USD).
-SEGUNDA: Se conviene como honorarios profesionales de intermediación: ${form.honorarios}, los cuales serán cancelados al momento del otorgamiento del documento definitivo o firma de opción a compra ante Notaría o Registro Público Inmobiliario (SAREN).
-TERCERA: EL PROPIETARIO se compromete a facilitar copias simples del Título de Propiedad y documentación legal para la debida verificación preventiva.
+EL/LA COMPRADOR(A):
+Nombre: ${data.comprador.nombre}
+Cédula: ${data.comprador.cedula}
+Teléfono: ${data.comprador.telefono}
+Dirección: ${data.comprador.direccion}
 
-En constancia de conformidad, firman en fecha ${fechaFormateada}:
+CLÁUSULAS:
 
-_____________________________              _____________________________
-EL PROPIETARIO                             EL INTERMEDIARIO
-C.I. ${form.ciCliente || "[C.I.]"}                          C.I. ${form.ciAsesor}`;
+PRIMERA - OBJETO DEL CONTRATO
+El/La Vendedor(a) transfiere al/La Comprador(a) el siguiente inmueble:
+Tipo: ${data.inmueble.tipo}
+Dirección: ${data.inmueble.direccion}
+Urbanización: ${data.inmueble.urbanizacion}
+Ciudad: ${data.inmueble.ciudad}, ${data.inmueble.estado}
+Metros cuadrados: ${data.inmueble.metros}m²
+Habitaciones: ${data.inmueble.habs} | Baños: ${data.inmueble.banos}
+Descripción: ${data.inmueble.descripcion}
 
-  const documentoLOI = `RECIBO DE RESERVA Y CARTA DE INTENCIÓN DE COMPRA
+SEGUNDA - PRECIO Y FORMA DE PAGO
+El precio de venta es de ${formatCurrency(data.precio)} (${data.precio} dólares americanos).
+Forma de pago: ${data.formaPago}
 
-Fecha: ${fechaFormateada}
-Inmueble: ${form.inmDireccion || "[Dirección del Inmueble]"}
+TERCERA - ENTREGA DEL INMUEBLE
+El/La Vendedor(a) se compromete a entregar el inmueble libre de cargos, deudas y gravámenes.
 
-Por medio del presente documento, el ciudadano(a) ${form.nomCliente || "[Nombre del Comprador]"}, titular de la C.I. N° ${form.ciCliente || "[C.I.]"}, manifiesta formalmente su intención de adquirir el inmueble antes identificado, bajo las siguientes condiciones:
+CUARTA - GASTOS E IMPUESTOS
+Los gastos de escrituración, impuestos y honorarios profesionales serán cubiertos por ${data.formaPago === "CONTADO" ? "el/la Comprador(a)" : "ambas partes proporcionalmente"}.
 
-1. PRECIO DE OFERTA: La cantidad de ${formatCurrency(form.precioPactado)} DÓLARES AMERICANOS (USD).
-2. FORMA DE PAGO: Fondos disponibles en efectivo / transferencia bancaria al momento de la firma.
-3. CONDICIÓN: Oferta sujeta a la revisión satisfactoria de la tradición legal del inmueble ante el Registro Inmobiliario competente (SAREN).
-4. El presente acuerdo otorga un plazo de cinco (5) días hábiles para la redacción y formalización del contrato de Opción de Compra Venta bilateral.
+QUINTA - VIGENCIA
+El presente contrato tendrá vigencia a partir de la fecha de firma.
 
-Firmado en señal de aceptación:
+${data.condiciones}
 
-_____________________________              _____________________________
-EL OFERTANTE / COMPRADOR                   POR LA INTERMEDIACIÓN
-C.I. ${form.ciCliente || "[C.I.]"}                          C.I. ${form.ciAsesor}`;
+Firmado en __________________, a los ____ días del mes de ______________ de ${new Date(data.fecha).getFullYear()}.
 
-  const documento = tipoDoc === "autorizacion" ? documentoAutorizacion : documentoLOI;
 
-  const copiarAlPortapapeles = () => {
-    navigator.clipboard.writeText(documento);
+_____________________          _____________________
+EL/LA VENDEDOR(A)             EL/LA COMPRADOR(A)
+
+
+_____________________
+Testigo 1
+
+
+_____________________
+Testigo 2
+    `.trim();
+
+    const blob = new Blob([contrato], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Contrato_${data.tipo}_${data.comprador.nombre || "cliente"}_${data.fecha}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="max-w-7xl mx-auto animate-fade-in">
+    <div className="max-w-6xl mx-auto animate-fade-in">
       {/* Header */}
-      <div className="mb-8">
+      <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20">
-            <FileText className="w-5 h-5 text-purple-400" />
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20">
+            <FileText className="w-5 h-5 text-rose-400" />
           </div>
           <div>
             <h1 className="text-2xl font-bold font-[family-name:var(--font-display)]">
               Generador de Contratos
             </h1>
             <p className="text-sm text-text-muted">
-              Documentos legales y protección de comisión para Venezuela
+              Genera contratos profesionales de compraventa
             </p>
           </div>
         </div>
+        <button onClick={generarContrato} className="btn-primary flex items-center gap-2">
+          <Download className="w-4 h-4" />
+          Descargar Contrato
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Formulario */}
+        {/* Tipo de Contrato */}
         <div className="glass-card p-6">
-          <h2 className="text-lg font-semibold text-text-primary mb-6">Datos del Documento</h2>
+          <h2 className="text-lg font-semibold text-text-primary mb-4">Tipo de Contrato</h2>
+          <select value={data.tipo} onChange={(e) => setData({ ...data, tipo: e.target.value })}
+            className="select-field w-full">
+            <option value="COMPRAVENTA">Contrato de Compraventa</option>
+            <option value="ARRENDAMIENTO">Contrato de Arrendamiento</option>
+            <option value="OPCION DE COMPRA">Opción de Compra</option>
+            <option value="DEPOSITO EN GARANTÍA">Depósito en Garantía</option>
+          </select>
+        </div>
 
-          <div className="mb-4">
-            <label className="text-xs font-medium text-text-secondary mb-2 block">Tipo de Documento</label>
-            <div className="flex gap-2">
-              {[
-                { value: "autorizacion", label: "Autorización de Venta" },
-                { value: "loi", label: "Carta de Intención (LOI)" },
-              ].map((op) => (
-                <button
-                  key={op.value}
-                  onClick={() => setTipoDoc(op.value)}
-                  className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
-                    tipoDoc === op.value
-                      ? "bg-primary/10 text-primary border border-primary/30"
-                      : "bg-surface text-text-muted border border-border"
-                  }`}
-                >
-                  {op.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-medium text-text-secondary mb-1 block">
-                  <User className="w-3 h-3 inline mr-1" />
-                  Tu Nombre / Agencia
-                </label>
-                <input
-                  type="text"
-                  value={form.nomAsesor}
-                  onChange={(e) => setForm({ ...form, nomAsesor: e.target.value })}
-                  className="input-field"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-text-secondary mb-1 block">Tu C.I. / RIF</label>
-                <input
-                  type="text"
-                  value={form.ciAsesor}
-                  onChange={(e) => setForm({ ...form, ciAsesor: e.target.value })}
-                  className="input-field"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-medium text-text-secondary mb-1 block">
-                  Nombre del Cliente
-                </label>
-                <input
-                  type="text"
-                  value={form.nomCliente}
-                  onChange={(e) => setForm({ ...form, nomCliente: e.target.value })}
-                  placeholder="Ej. Carlos Mendoza"
-                  className="input-field"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-text-secondary mb-1 block">C.I. del Cliente</label>
-                <input
-                  type="text"
-                  value={form.ciCliente}
-                  onChange={(e) => setForm({ ...form, ciCliente: e.target.value })}
-                  placeholder="Ej. V-12.345.678"
-                  className="input-field"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-text-secondary mb-1 block">
-                <MapPin className="w-3 h-3 inline mr-1" />
-                Dirección del Inmueble
-              </label>
-              <input
-                type="text"
-                value={form.inmDireccion}
-                onChange={(e) => setForm({ ...form, inmDireccion: e.target.value })}
-                placeholder="Res. Las Chimeneas, Apto 4-B, Valencia"
-                className="input-field"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-medium text-text-secondary mb-1 block">
-                  <DollarSign className="w-3 h-3 inline mr-1" />
-                  Monto Pactado (USD)
-                </label>
-                <input
-                  type="number"
-                  value={form.precioPactado}
-                  onChange={(e) => setForm({ ...form, precioPactado: Number(e.target.value) })}
-                  className="input-field"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-text-secondary mb-1 block">Honorarios</label>
-                <input
-                  type="text"
-                  value={form.honorarios}
-                  onChange={(e) => setForm({ ...form, honorarios: e.target.value })}
-                  className="input-field"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex gap-3 mt-6">
-            <button onClick={copiarAlPortapapeles} className="btn-secondary flex-1 flex items-center justify-center gap-2">
-              <Copy className="w-4 h-4" />
-              Copiar Texto
-            </button>
-            <a
-              href={`data:text/plain;charset=utf-8,${encodeURIComponent(documento)}`}
-              download={`documento_${new Date().toISOString().split("T")[0]}.txt`}
-              className="btn-primary flex-1 flex items-center justify-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Descargar .TXT
-            </a>
+        {/* Datos del Vendedor */}
+        <div className="glass-card p-6">
+          <h2 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
+            <User className="w-5 h-5 text-warning" /> Vendedor
+          </h2>
+          <div className="space-y-3">
+            <input type="text" placeholder="Nombre completo" value={data.vendedor.nombre}
+              onChange={(e) => setData({ ...data, vendedor: { ...data.vendedor, nombre: e.target.value } })}
+              className="input-field w-full" />
+            <input type="text" placeholder="Cédula/RIF" value={data.vendedor.cedula}
+              onChange={(e) => setData({ ...data, vendedor: { ...data.vendedor, cedula: e.target.value } })}
+              className="input-field w-full" />
+            <input type="text" placeholder="Teléfono" value={data.vendedor.telefono}
+              onChange={(e) => setData({ ...data, vendedor: { ...data.vendedor, telefono: e.target.value } })}
+              className="input-field w-full" />
+            <input type="text" placeholder="Dirección" value={data.vendedor.direccion}
+              onChange={(e) => setData({ ...data, vendedor: { ...data.vendedor, direccion: e.target.value } })}
+              className="input-field w-full" />
           </div>
         </div>
 
-        {/* Vista Previa */}
+        {/* Datos del Comprador */}
         <div className="glass-card p-6">
-          <h2 className="text-lg font-semibold text-text-primary mb-4">Vista Previa del Documento</h2>
-          <div className="bg-surface rounded-lg p-4 max-h-[600px] overflow-y-auto">
-            <pre className="text-xs text-text-secondary whitespace-pre-wrap font-[family-name:var(--font-mono)] leading-relaxed">
-              {documento}
-            </pre>
+          <h2 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
+            <User className="w-5 h-5 text-success" /> Comprador
+          </h2>
+          <div className="space-y-3">
+            <input type="text" placeholder="Nombre completo" value={data.comprador.nombre}
+              onChange={(e) => setData({ ...data, comprador: { ...data.comprador, nombre: e.target.value } })}
+              className="input-field w-full" />
+            <input type="text" placeholder="Cédula/RIF" value={data.comprador.cedula}
+              onChange={(e) => setData({ ...data, comprador: { ...data.comprador, cedula: e.target.value } })}
+              className="input-field w-full" />
+            <input type="text" placeholder="Teléfono" value={data.comprador.telefono}
+              onChange={(e) => setData({ ...data, comprador: { ...data.comprador, telefono: e.target.value } })}
+              className="input-field w-full" />
+            <input type="text" placeholder="Dirección" value={data.comprador.direccion}
+              onChange={(e) => setData({ ...data, comprador: { ...data.comprador, direccion: e.target.value } })}
+              className="input-field w-full" />
+          </div>
+        </div>
+
+        {/* Datos del Inmueble */}
+        <div className="glass-card p-6">
+          <h2 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
+            <Home className="w-5 h-5 text-primary" /> Inmueble
+          </h2>
+          <div className="space-y-3">
+            <select value={data.inmueble.tipo}
+              onChange={(e) => setData({ ...data, inmueble: { ...data.inmueble, tipo: e.target.value } })}
+              className="select-field w-full">
+              <option>Apartamento</option><option>Casa</option><option>Townhouse</option>
+              <option>Penthouse</option><option>Terreno</option><option>Local Comercial</option>
+            </select>
+            <input type="text" placeholder="Dirección" value={data.inmueble.direccion}
+              onChange={(e) => setData({ ...data, inmueble: { ...data.inmueble, direccion: e.target.value } })}
+              className="input-field w-full" />
+            <input type="text" placeholder="Urbanización" value={data.inmueble.urbanizacion}
+              onChange={(e) => setData({ ...data, inmueble: { ...data.inmueble, urbanizacion: e.target.value } })}
+              className="input-field w-full" />
+            <div className="grid grid-cols-2 gap-3">
+              <input type="text" placeholder="Ciudad" value={data.inmueble.ciudad}
+                onChange={(e) => setData({ ...data, inmueble: { ...data.inmueble, ciudad: e.target.value } })}
+                className="input-field w-full" />
+              <input type="text" placeholder="Estado" value={data.inmueble.estado}
+                onChange={(e) => setData({ ...data, inmueble: { ...data.inmueble, estado: e.target.value } })}
+                className="input-field w-full" />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <input type="number" placeholder="m²" value={data.inmueble.metros || ""}
+                onChange={(e) => setData({ ...data, inmueble: { ...data.inmueble, metros: Number(e.target.value) } })}
+                className="input-field w-full" />
+              <input type="number" placeholder="Habs" value={data.inmueble.habs || ""}
+                onChange={(e) => setData({ ...data, inmueble: { ...data.inmueble, habs: Number(e.target.value) } })}
+                className="input-field w-full" />
+              <input type="number" placeholder="Baños" value={data.inmueble.banos || ""}
+                onChange={(e) => setData({ ...data, inmueble: { ...data.inmueble, banos: Number(e.target.value) } })}
+                className="input-field w-full" />
+            </div>
+            <textarea placeholder="Descripción del inmueble" value={data.inmueble.descripcion}
+              onChange={(e) => setData({ ...data, inmueble: { ...data.inmueble, descripcion: e.target.value } })}
+              className="input-field w-full h-20" />
+          </div>
+        </div>
+
+        {/* Precio y Condiciones */}
+        <div className="glass-card p-6 lg:col-span-2">
+          <h2 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
+            <DollarSign className="w-5 h-5 text-success" /> Precio y Condiciones
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-xs text-text-muted mb-1 block">Precio de Venta (USD)</label>
+              <input type="number" value={data.precio || ""}
+                onChange={(e) => setData({ ...data, precio: Number(e.target.value) })}
+                className="input-field w-full" />
+            </div>
+            <div>
+              <label className="text-xs text-text-muted mb-1 block">Fecha del Contrato</label>
+              <input type="date" value={data.fecha}
+                onChange={(e) => setData({ ...data, fecha: e.target.value })}
+                className="input-field w-full" />
+            </div>
+            <div>
+              <label className="text-xs text-text-muted mb-1 block">Forma de Pago</label>
+              <select value={data.formaPago}
+                onChange={(e) => setData({ ...data, formaPago: e.target.value })}
+                className="select-field w-full">
+                <option>CONTADO</option><option>CRÉDITO BANCARIO</option>
+                <option>CRÉDITO VENDEDOR</option><option>MIXTA</option>
+              </select>
+            </div>
+          </div>
+          <div className="mt-4">
+            <label className="text-xs text-text-muted mb-1 block">Condiciones Especiales</label>
+            <textarea value={data.condiciones}
+              onChange={(e) => setData({ ...data, condiciones: e.target.value })}
+              className="input-field w-full h-24" />
           </div>
         </div>
       </div>

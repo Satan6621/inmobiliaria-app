@@ -18,6 +18,9 @@ import {
   Scale,
   Upload,
   Share2,
+  TrendingUp,
+  Calendar,
+  Bell,
 } from "lucide-react";
 import { useState } from "react";
 import { ThemeToggle } from "./theme-toggle";
@@ -27,11 +30,14 @@ const navItems = [
   { href: "/crm", label: "CRM & Leads", icon: Users, color: "text-emerald-600" },
   { href: "/inventario", label: "Inventario", icon: Home, color: "text-amber-600" },
   { href: "/compradores", label: "Compradores", icon: Users, color: "text-success" },
+  { href: "/calendario", label: "Calendario", icon: Calendar, color: "text-cyan-600" },
+  { href: "/seguimiento", label: "Seguimiento", icon: Bell, color: "text-warning" },
+  { href: "/hipotecas", label: "Hipotecas", icon: Calculator, color: "text-indigo-600" },
+  { href: "/contratos", label: "Contratos", icon: FileText, color: "text-rose-600" },
+  { href: "/mercado", label: "Mercado", icon: TrendingUp, color: "text-purple-600" },
   { href: "/social", label: "Redes Sociales", icon: Share2, color: "text-pink-600" },
   { href: "/analytics", label: "Analytics", icon: BarChart3, color: "text-purple-600" },
   { href: "/comparar", label: "Comparar", icon: Scale, color: "text-cyan-600" },
-  { href: "/finanzas", label: "Finanzas", icon: Calculator, color: "text-indigo-600" },
-  { href: "/contratos", label: "Contratos", icon: FileText, color: "text-rose-600" },
   { href: "/guiones", label: "Guiones", icon: MessageSquare, color: "text-pink-600" },
 ];
 
