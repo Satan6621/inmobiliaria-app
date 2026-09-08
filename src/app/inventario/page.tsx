@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   Home, Plus, Send, Copy, ExternalLink, Phone, CheckCircle2,
-  Building2, MapPin, Bed, Bath, Car, Droplets, Zap, Wifi, Flame, Share2,
+  Building2, MapPin, Bed, Bath, Car, Droplets, Zap, Wifi, Flame, Share2, Users,
 } from "lucide-react";
 import { TIPOS_INMUEBLE, ESTADOS_VENEZUELA } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
@@ -41,6 +41,8 @@ export default function InventarioPage() {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [copySeleccionado, setCopySeleccionado] = useState<Record<number, string>>({});
+  const [matchingBuyers, setMatchingBuyers] = useState<Record<number, any[]>>({});
+  const [loadingMatch, setLoadingMatch] = useState<Record<number, boolean>>({});
 
   // Form state
   const [form, setForm] = useState({
@@ -113,6 +115,29 @@ export default function InventarioPage() {
 
   const copiarAlPortapapeles = (texto: string) => {
     navigator.clipboard.writeText(texto);
+  };
+
+  const buscarCompradores = async (inm: Inmueble) => {
+    setLoadingMatch((prev) => ({ ...prev, [inm.id]: true }));
+    try {
+      const res = await fetch("/api/matching", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tipo: inm.tipo,
+          precio: inm.precio_venta,
+          ciudad: inm.ciudad,
+          habs: inm.habs,
+          servicios: inm.servicios?.split(" | ") || [],
+        }),
+      });
+      const data = await res.json();
+      setMatchingBuyers((prev) => ({ ...prev, [inm.id]: data.matches || [] }));
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setLoadingMatch((prev) => ({ ...prev, [inm.id]: false }));
+    }
   };
 
   const publicarTelegram = async (inm: Inmueble) => {
@@ -448,6 +473,68 @@ export default function InventarioPage() {
                     existingImages={inm.fotos_rutas ? inm.fotos_rutas.split(",").filter(Boolean) : []}
                     maxFiles={10}
                   />
+                </div>
+
+                {/* Compradores Interesados */}
+                <div className="border-t border-border-subtle pt-4 mb-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-xs font-semibold text-text-secondary flex items-center gap-1">
+                      <Users className="w-3 h-3" />
+                      Compradores Interesados
+                    </h4>
+                    <button
+                      onClick={() => buscarCompradores(inm)}
+                      disabled={loadingMatch[inm.id]}
+                      className="text-xs px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                    >
+                      {loadingMatch[inm.id] ? "Buscando..." : "Buscar Compradores"}
+                    </button>
+                  </div>
+
+                  {matchingBuyers[inm.id] && matchingBuyers[inm.id].length > 0 ? (
+                    <div className="space-y-2">
+                      {matchingBuyers[inm.id].slice(0, 3).map((match: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-surface-elevated">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
+                              match.score >= 80 ? "bg-success/20 text-success" :
+                              match.score >= 50 ? "bg-warning/20 text-warning" :
+                              "bg-surface-hover text-text-muted"
+                            }`}>
+                              {match.score}%
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium text-text-primary">{match.comprador.nombre}</div>
+                              <div className="text-xs text-text-muted">
+                                {match.comprador.ciudad} • ${match.comprador.presupuesto_min?.toLocaleString()} - ${match.comprador.presupuesto_max?.toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+                          <a
+                            href={`https://wa.me/${match.comprador.telefono?.replace(/[^0-9]/g, "")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 rounded-lg bg-success/10 text-success hover:bg-success/20"
+                          >
+                            <Phone className="w-4 h-4" />
+                          </a>
+                        </div>
+                      ))}
+                      {matchingBuyers[inm.id].length > 3 && (
+                        <p className="text-xs text-text-muted text-center">
+                          +{matchingBuyers[inm.id].length - 3} compradores más interesados
+                        </p>
+                      )}
+                    </div>
+                  ) : matchingBuyers[inm.id] ? (
+                    <p className="text-xs text-text-muted text-center py-2">
+                      No se encontraron compradores interesados en esta propiedad
+                    </p>
+                  ) : (
+                    <p className="text-xs text-text-muted text-center py-2">
+                      Haz clic en "Buscar Compradores" para ver quiénes podrían estar interesados
+                    </p>
+                  )}
                 </div>
 
                 {/* Social Media Generator */}
