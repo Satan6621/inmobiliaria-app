@@ -14,9 +14,9 @@ interface AIResult {
   resumen: string;
   fuente: string;
   fuente_url?: string;
-  metros?: number;
-  habitaciones?: number;
-  banos?: number;
+  metros?: number | null;
+  habitaciones?: number | null;
+  banos?: number | null;
   score_calidad: number;
   fecha_publicacion?: string;
 }
@@ -161,17 +161,17 @@ export function AISearch() {
 
                 {/* Features */}
                 <div className="flex items-center gap-4 mb-3 text-sm text-text-secondary">
-                  {r.habitaciones > 0 && (
+                  {r.habitaciones != null && r.habitaciones > 0 && (
                     <span className="flex items-center gap-1">
                       <Bed className="w-4 h-4" /> {r.habitaciones} Hab.
                     </span>
                   )}
-                  {r.banos > 0 && (
+                  {r.banos != null && r.banos > 0 && (
                     <span className="flex items-center gap-1">
                       <Bath className="w-4 h-4" /> {r.banos} Baños
                     </span>
                   )}
-                  {r.metros && (
+                  {r.metros != null && (
                     <span className="flex items-center gap-1">
                       <Car className="w-4 h-4" /> {r.metros}m²
                     </span>
