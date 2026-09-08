@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   Home, Plus, Send, Copy, ExternalLink, Phone, CheckCircle2,
-  Building2, MapPin, Bed, Bath, Car, Droplets, Zap, Wifi, Flame,
+  Building2, MapPin, Bed, Bath, Car, Droplets, Zap, Wifi, Flame, Share2,
 } from "lucide-react";
 import { TIPOS_INMUEBLE, ESTADOS_VENEZUELA } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
@@ -12,6 +12,7 @@ import { DEFAULT_BOT_TOKEN, DEFAULT_CHAT_ID } from "@/lib/constants";
 import { ImageUpload } from "@/components/image-upload";
 import { PDFGenerator } from "@/components/pdf-generator";
 import { WhatsAppButton } from "@/components/whatsapp-button";
+import { SocialMediaGenerator } from "@/components/social-media-generator";
 
 interface Inmueble {
   id: number;
@@ -397,7 +398,7 @@ export default function InventarioPage() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-2 flex-wrap mb-4">
                   <button onClick={() => publicarTelegram(inm)} className="btn-primary text-xs py-2 px-4 flex items-center gap-1.5">
                     <Send className="w-3.5 h-3.5" />
                     Telegram
@@ -406,6 +407,30 @@ export default function InventarioPage() {
                   <WhatsAppButton
                     phone={inm.contacto_dueno}
                     property={{ tipo: inm.tipo, urbanizacion: inm.urbanizacion, ciudad: inm.ciudad, precio: inm.precio_venta }}
+                  />
+                </div>
+
+                {/* Social Media Generator */}
+                <div className="border-t border-border-subtle pt-4">
+                  <h4 className="text-xs font-semibold text-text-secondary mb-3 flex items-center gap-1">
+                    <Share2 className="w-3 h-3" />
+                    Generador de Contenido para Redes Sociales
+                  </h4>
+                  <SocialMediaGenerator
+                    property={{
+                      titulo: inm.titulo,
+                      tipo: inm.tipo,
+                      ciudad: inm.ciudad,
+                      urbanizacion: inm.urbanizacion,
+                      estado: inm.estado,
+                      precio_venta: inm.precio_venta,
+                      habs: inm.habs,
+                      banos: inm.banos,
+                      puestos: inm.puestos,
+                      metros: inm.metros,
+                      servicios: inm.servicios,
+                      descripcion: inm.descripcion,
+                    }}
                   />
                 </div>
               </div>

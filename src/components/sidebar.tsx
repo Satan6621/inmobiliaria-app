@@ -17,6 +17,7 @@ import {
   Map,
   Scale,
   Upload,
+  Share2,
 } from "lucide-react";
 import { useState } from "react";
 import { ThemeToggle } from "./theme-toggle";
@@ -25,6 +26,7 @@ const navItems = [
   { href: "/rastreador", label: "Rastreador", icon: Search, color: "text-blue-600" },
   { href: "/crm", label: "CRM & Leads", icon: Users, color: "text-emerald-600" },
   { href: "/inventario", label: "Inventario", icon: Home, color: "text-amber-600" },
+  { href: "/social", label: "Redes Sociales", icon: Share2, color: "text-pink-600" },
   { href: "/analytics", label: "Analytics", icon: BarChart3, color: "text-purple-600" },
   { href: "/comparar", label: "Comparar", icon: Scale, color: "text-cyan-600" },
   { href: "/finanzas", label: "Finanzas", icon: Calculator, color: "text-indigo-600" },
