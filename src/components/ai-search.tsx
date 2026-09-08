@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Brain, Search, Loader2, ExternalLink, Phone } from "lucide-react";
+import { Brain, Search, Loader2, Phone, AlertCircle } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 interface AIResult {
@@ -20,20 +20,44 @@ export function AISearch() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [resultados, setResultados] = useState<AIResult[]>([]);
+  const [error, setError] = useState("");
 
   const handleSearch = async () => {
     if (!query.trim()) return;
     setLoading(true);
+    setError("");
+    setResultados([]);
+
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
       const res = await fetch("/api/ai-search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeout);
+
+      if (!res.ok) {
+        throw new Error(`Error ${res.status}`);
+      }
+
       const data = await res.json();
-      setResultados(data.resultados || []);
-    } catch (error) {
-      console.error("Error:", error);
+      if (data.resultados && data.resultados.length > 0) {
+        setResultados(data.resultados);
+      } else {
+        setError("No se encontraron resultados. Intenta con otra búsqueda.");
+      }
+    } catch (err: any) {
+      if (err.name === "AbortError") {
+        setError("La búsqueda tardó demasiado. Intenta de nuevo.");
+      } else {
+        setError("Error al conectar con la IA. Intenta de nuevo.");
+      }
+      console.error("Error:", err);
     } finally {
       setLoading(false);
     }
@@ -48,7 +72,7 @@ export function AISearch() {
           </div>
           <div>
             <h3 className="text-lg font-semibold text-text-primary">Búsqueda con AI</h3>
-            <p className="text-xs text-text-muted">Gemini analiza y estructura propiedades automáticamente</p>
+            <p className="text-xs text-text-muted">IA analiza y estructura propiedades automáticamente</p>
           </div>
         </div>
 
@@ -60,6 +84,7 @@ export function AISearch() {
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             placeholder="Ej. apartamento 3 habitaciones en Valencia con pozo..."
             className="input-field flex-1"
+            disabled={loading}
           />
           <button
             onClick={handleSearch}
@@ -71,9 +96,16 @@ export function AISearch() {
             ) : (
               <Search className="w-4 h-4" />
             )}
-            Buscar con AI
+            {loading ? "Buscando..." : "Buscar con AI"}
           </button>
         </div>
+
+        {error && (
+          <div className="mt-4 p-3 rounded-lg bg-danger/10 border border-danger/20 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-danger" />
+            <span className="text-sm text-danger">{error}</span>
+          </div>
+        )}
       </div>
 
       {resultados.length > 0 && (
@@ -86,9 +118,11 @@ export function AISearch() {
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span className="badge badge-primary">{r.tipo}</span>
-                  <span className={`badge ${r.score_calidad >= 80 ? "badge-success" : r.score_calidad >= 50 ? "badge-warning" : "badge-danger"}`}>
-                    Score: {r.score_calidad}%
-                  </span>
+                  {r.score_calidad > 0 && (
+                    <span className={`badge ${r.score_calidad >= 80 ? "badge-success" : r.score_calidad >= 50 ? "badge-warning" : "badge-danger"}`}>
+                      Score: {r.score_calidad}%
+                    </span>
+                  )}
                 </div>
                 {r.precio > 0 && (
                   <span className="text-lg font-bold text-primary">{formatCurrency(r.precio)}</span>
@@ -99,7 +133,7 @@ export function AISearch() {
               <p className="text-sm text-text-muted mb-2">{r.ubicacion}</p>
               <p className="text-sm text-text-secondary mb-3">{r.resumen}</p>
 
-              {r.servicios.length > 0 && (
+              {r.servicios && r.servicios.length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-3">
                   {r.servicios.map((s, j) => (
                     <span key={j} className="badge badge-info text-xs">{s}</span>
