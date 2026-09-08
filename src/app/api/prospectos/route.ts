@@ -36,6 +36,8 @@ export async function POST(request: NextRequest) {
         enlace: body.enlace || "",
         estado_gestion: "NUEVO",
         notas: "",
+        imagenes_urls: body.imagenes_urls || [],
+        notas_imagenes: body.notas_imagenes || "",
       })
       .select()
       .single();
@@ -54,11 +56,16 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const { id, estado_gestion, notas } = await request.json();
+    const body = await request.json();
+    const { id, ...updates } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "ID requerido" }, { status: 400 });
+    }
 
     const { error } = await supabase
       .from("prospectos")
-      .update({ estado_gestion, notas })
+      .update(updates)
       .eq("id", id);
 
     if (error) {

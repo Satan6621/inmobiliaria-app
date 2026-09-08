@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Phone, ExternalLink, Edit3, Save, Trash2, BarChart3 } from "lucide-react";
+import { Users, Phone, ExternalLink, Edit3, Save, Trash2, BarChart3, Image, X, Plus } from "lucide-react";
 import { ESTADOS_GESTION } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
 
@@ -23,6 +23,8 @@ interface Prospecto {
   enlace: string;
   estado_gestion: string;
   notas: string;
+  imagenes_urls: string[];
+  notas_imagenes: string;
 }
 
 export default function CRMPage() {
@@ -34,6 +36,9 @@ export default function CRMPage() {
   const [nuevoEstado, setNuevoEstado] = useState("");
   const [notaRapida, setNotaRapida] = useState("");
   const [activeTab, setActiveTab] = useState<"prospectos" | "compradores">("prospectos");
+  const [editandoImagenes, setEditandoImagenes] = useState<number | null>(null);
+  const [nuevaImagenUrl, setNuevaImagenUrl] = useState("");
+  const [notasImagen, setNotasImagen] = useState("");
 
   useEffect(() => {
     fetchData();
@@ -79,6 +84,40 @@ export default function CRMPage() {
     filtroEstado === "TODOS"
       ? prospectos
       : prospectos.filter((p) => p.estado_gestion === filtroEstado);
+
+  const guardarImagenes = async (id: number, imagenes: string[], notas: string) => {
+    try {
+      await fetch("/api/prospectos", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, imagenes_urls: imagenes, notas_imagenes: notas }),
+      });
+      setProspectos((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, imagenes_urls: imagenes, notas_imagenes: notas } : p))
+      );
+      setEditandoImagenes(null);
+      setNuevaImagenUrl("");
+      setNotasImagen("");
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  const agregarImagen = (id: number) => {
+    if (!nuevaImagenUrl.trim()) return;
+    const prospecto = prospectos.find((p) => p.id === id);
+    if (!prospecto) return;
+    const imagenes = [...(prospecto.imagenes_urls || []), nuevaImagenUrl.trim()];
+    guardarImagenes(id, imagenes, notasImagen);
+    setNuevaImagenUrl("");
+  };
+
+  const eliminarImagen = (id: number, index: number) => {
+    const prospecto = prospectos.find((p) => p.id === id);
+    if (!prospecto) return;
+    const imagenes = (prospecto.imagenes_urls || []).filter((_, i) => i !== index);
+    guardarImagenes(id, imagenes, notasImagen);
+  };
 
   const stats = {
     total: prospectos.length,
@@ -246,6 +285,13 @@ export default function CRMPage() {
                   <td className="text-xs text-text-secondary max-w-[150px] truncate">{p.titulo}</td>
                   <td>
                     <div className="flex items-center gap-1">
+                      <button onClick={() => { setEditandoImagenes(p.id); setNotasImagen(p.notas_imagenes || ""); }}
+                        className={`p-1.5 rounded-lg hover:bg-surface-hover ${p.imagenes_urls?.length ? "text-primary" : "text-text-muted"}`}>
+                        <Image className="w-3.5 h-3.5" />
+                        {p.imagenes_urls?.length > 0 && (
+                          <span className="text-[10px] ml-0.5">{p.imagenes_urls.length}</span>
+                        )}
+                      </button>
                       {p.whatsapp_link && (
                         <a href={p.whatsapp_link} target="_blank" rel="noopener noreferrer"
                           className="p-1.5 rounded-lg hover:bg-surface-hover text-success">
@@ -371,6 +417,72 @@ export default function CRMPage() {
                   Guardar
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Imágenes */}
+      {editandoImagenes && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass-card p-6 w-full max-w-lg animate-slide-up max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+                <Image className="w-5 h-5" />
+                Imágenes de Referencia
+              </h3>
+              <button onClick={() => setEditandoImagenes(null)} className="p-2 rounded-lg hover:bg-surface-hover">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Imágenes existentes */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              {(prospectos.find((p) => p.id === editandoImagenes)?.imagenes_urls || []).map((url, idx) => (
+                <div key={idx} className="relative group">
+                  <img src={url} alt={`Referencia ${idx + 1}`}
+                    className="w-full h-32 object-cover rounded-lg border border-border" />
+                  <button onClick={() => eliminarImagen(editandoImagenes, idx)}
+                    className="absolute top-1 right-1 p-1 rounded-full bg-danger text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Agregar imagen */}
+            <div className="flex gap-2 mb-4">
+              <input type="url" value={nuevaImagenUrl} onChange={(e) => setNuevaImagenUrl(e.target.value)}
+                placeholder="Pega URL de la imagen (www.ejemplo.com/foto.jpg)"
+                className="input-field flex-1"
+                onKeyDown={(e) => e.key === "Enter" && agregarImagen(editandoImagenes)} />
+              <button onClick={() => agregarImagen(editandoImagenes)} disabled={!nuevaImagenUrl.trim()}
+                className="btn-primary px-4">
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Notas */}
+            <div className="mb-4">
+              <label className="text-xs text-text-muted mb-1 block">Notas sobre las imágenes</label>
+              <textarea value={notasImagen} onChange={(e) => setNotasImagen(e.target.value)}
+                placeholder="Ej. Fachada principal, piscina, vista del lote..."
+                className="input-field w-full h-16 text-sm"
+                onBlur={() => {
+                  const p = prospectos.find((pp) => pp.id === editandoImagenes);
+                  if (p) guardarImagenes(editandoImagenes, p.imagenes_urls || [], notasImagen);
+                }} />
+            </div>
+
+            {/* Ayuda */}
+            <div className="bg-surface-elevated rounded-lg p-3 text-xs text-text-muted">
+              <p className="font-medium mb-1">Cómo agregar imágenes:</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Busca la propiedad en Google Images</li>
+                <li>Copia la URL de la imagen (clic derecho → Copiar dirección de imagen)</li>
+                <li>Pega la URL aquí y presiona +</li>
+                <li>O busca en: Metrocuadrado, Oportunia, Facebook Marketplace</li>
+              </ul>
             </div>
           </div>
         </div>
