@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Filter, Send, ExternalLink, Phone, Zap, AlertTriangle, Loader2 } from "lucide-react";
+import { Search, Filter, Send, ExternalLink, Phone, Zap, AlertTriangle, Loader2, Brain } from "lucide-react";
 import { ZONAS_DISPONIBLES } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
+import { AISearch } from "@/components/ai-search";
 
 interface ProspectoRastreo {
   fecha: string;
@@ -95,6 +96,11 @@ export default function RastreadorPage() {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* AI Search Section */}
+      <div className="mb-8">
+        <AISearch />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

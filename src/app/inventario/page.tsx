@@ -9,6 +9,9 @@ import { TIPOS_INMUEBLE, ESTADOS_VENEZUELA } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
 import { generarCopyWhatsApp, generarCopyInstagram, generarCopyMarketplace } from "@/lib/utils";
 import { DEFAULT_BOT_TOKEN, DEFAULT_CHAT_ID } from "@/lib/constants";
+import { ImageUpload } from "@/components/image-upload";
+import { PDFGenerator } from "@/components/pdf-generator";
+import { WhatsAppButton } from "@/components/whatsapp-button";
 
 interface Inmueble {
   id: number;
@@ -249,6 +252,10 @@ export default function InventarioPage() {
                   className="input-field min-h-[80px] resize-none"
                 />
               </div>
+              <div>
+                <label className="text-xs font-medium text-text-secondary mb-1 block">Fotos del Inmueble</label>
+                <ImageUpload onUpload={(urls) => console.log("Uploaded:", urls)} maxFiles={10} />
+              </div>
               <button onClick={handleGuardar} className="btn-primary w-full">
                 Guardar en Cartera
               </button>
@@ -368,11 +375,16 @@ export default function InventarioPage() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <button onClick={() => publicarTelegram(inm)} className="btn-primary text-xs py-2 px-4 flex items-center gap-1.5">
                     <Send className="w-3.5 h-3.5" />
-                    Publicar en Telegram
+                    Telegram
                   </button>
+                  <PDFGenerator inmueble={inm} />
+                  <WhatsAppButton
+                    phone={inm.contacto_dueno}
+                    property={{ tipo: inm.tipo, urbanizacion: inm.urbanizacion, ciudad: inm.ciudad, precio: inm.precio_venta }}
+                  />
                 </div>
               </div>
             );

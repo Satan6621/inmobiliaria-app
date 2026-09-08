@@ -13,16 +13,23 @@ import {
   Building2,
   ChevronLeft,
   ChevronRight,
+  BarChart3,
+  Map,
+  Scale,
+  Upload,
 } from "lucide-react";
 import { useState } from "react";
+import { ThemeToggle } from "./theme-toggle";
 
 const navItems = [
-  { href: "/rastreador", label: "Rastreador", icon: Search, color: "text-blue-400" },
-  { href: "/crm", label: "CRM & Leads", icon: Users, color: "text-emerald-400" },
-  { href: "/inventario", label: "Inventario", icon: Home, color: "text-amber-400" },
-  { href: "/finanzas", label: "Finanzas", icon: Calculator, color: "text-cyan-400" },
-  { href: "/contratos", label: "Contratos", icon: FileText, color: "text-purple-400" },
-  { href: "/guiones", label: "Guiones", icon: MessageSquare, color: "text-rose-400" },
+  { href: "/rastreador", label: "Rastreador", icon: Search, color: "text-blue-600" },
+  { href: "/crm", label: "CRM & Leads", icon: Users, color: "text-emerald-600" },
+  { href: "/inventario", label: "Inventario", icon: Home, color: "text-amber-600" },
+  { href: "/analytics", label: "Analytics", icon: BarChart3, color: "text-purple-600" },
+  { href: "/comparar", label: "Comparar", icon: Scale, color: "text-cyan-600" },
+  { href: "/finanzas", label: "Finanzas", icon: Calculator, color: "text-indigo-600" },
+  { href: "/contratos", label: "Contratos", icon: FileText, color: "text-rose-600" },
+  { href: "/guiones", label: "Guiones", icon: MessageSquare, color: "text-pink-600" },
 ];
 
 export function Sidebar() {
@@ -32,14 +39,14 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 h-screen z-50 flex flex-col border-r border-border-subtle bg-surface transition-all duration-300",
+        "fixed left-0 top-0 h-screen z-50 flex flex-col border-r border-border bg-surface-elevated transition-all duration-300",
         collapsed ? "w-[72px]" : "w-[260px]"
       )}
     >
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 h-16 border-b border-border-subtle">
-        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10">
-          <Building2 className="w-5 h-5 text-primary" />
+      <div className="flex items-center gap-3 px-5 h-16 border-b border-border">
+        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary">
+          <Building2 className="w-5 h-5 text-white" />
         </div>
         {!collapsed && (
           <div className="animate-fade-in">
@@ -54,7 +61,7 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-4 px-3 space-y-1">
+      <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -76,15 +83,18 @@ export function Sidebar() {
               />
               {!collapsed && <span>{item.label}</span>}
               {isActive && !collapsed && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary pulse-gold" />
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary pulse-primary" />
               )}
             </Link>
           );
         })}
       </nav>
 
-      {/* Collapse Toggle */}
-      <div className="px-3 pb-4">
+      {/* Bottom */}
+      <div className="px-3 pb-4 space-y-2">
+        <div className="flex justify-center">
+          <ThemeToggle />
+        </div>
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors text-xs"

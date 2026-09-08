@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
+import { ThemeProvider } from "@/components/theme-provider";
+import { WhatsAppFloat } from "@/components/whatsapp-button";
 
 export const metadata: Metadata = {
   title: "Venezuela Inmobiliaria - Plataforma Integral de Bienes Raices",
@@ -13,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -23,10 +25,13 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <Sidebar />
-        <main className="ml-[260px] min-h-screen">
-          <div className="p-8">{children}</div>
-        </main>
+        <ThemeProvider>
+          <Sidebar />
+          <main className="ml-[260px] min-h-screen">
+            <div className="p-8">{children}</div>
+          </main>
+          <WhatsAppFloat />
+        </ThemeProvider>
       </body>
     </html>
   );
