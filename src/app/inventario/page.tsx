@@ -46,7 +46,7 @@ export default function InventarioPage() {
     titulo: "", tipo: "Apartamento", estado: "Carabobo", ciudad: "", urbanizacion: "",
     precio_dueno: 35000, margen_pct: 8, habs: 3, banos: 2, puestos: 2, metros: 95,
     servicios: { pozo: true, planta: false, fibra: true, gas: true },
-    descripcion: "", contacto_dueno: "",
+    descripcion: "", contacto_dueno: "", fotos: [] as string[],
   });
 
   useEffect(() => {
@@ -79,13 +79,31 @@ export default function InventarioPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...form,
+          titulo: form.titulo,
+          tipo: form.tipo,
+          estado: form.estado,
+          ciudad: form.ciudad,
+          urbanizacion: form.urbanizacion,
+          precio_dueno: form.precio_dueno,
           precio_venta,
+          habs: form.habs,
+          banos: form.banos,
+          puestos: form.puestos,
+          metros: form.metros,
           precio_m2,
           servicios: serviciosList.join(" | ") || "Básicos",
+          descripcion: form.descripcion,
+          contacto_dueno: form.contacto_dueno,
+          fotos_rutas: form.fotos.join(","),
         }),
       });
       setShowForm(false);
+      setForm({
+        titulo: "", tipo: "Apartamento", estado: "Carabobo", ciudad: "", urbanizacion: "",
+        precio_dueno: 35000, margen_pct: 8, habs: 3, banos: 2, puestos: 2, metros: 95,
+        servicios: { pozo: true, planta: false, fibra: true, gas: true },
+        descripcion: "", contacto_dueno: "", fotos: [],
+      });
       fetchInventario();
     } catch (error) {
       console.error("Error:", error);
@@ -254,7 +272,11 @@ export default function InventarioPage() {
               </div>
               <div>
                 <label className="text-xs font-medium text-text-secondary mb-1 block">Fotos del Inmueble</label>
-                <ImageUpload onUpload={(urls) => console.log("Uploaded:", urls)} maxFiles={10} />
+                <ImageUpload
+                  onUpload={(urls) => setForm({ ...form, fotos: [...form.fotos, ...urls] })}
+                  existingImages={form.fotos}
+                  maxFiles={10}
+                />
               </div>
               <button onClick={handleGuardar} className="btn-primary w-full">
                 Guardar en Cartera

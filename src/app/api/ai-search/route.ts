@@ -6,65 +6,120 @@ export async function POST(request: NextRequest) {
     const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
 
     if (!apiKey) {
-      // Fallback: return mock results with search suggestions
       return NextResponse.json({
-        resultados: [
-          {
-            titulo: `Búsqueda AI: ${query}`,
-            precio: 0,
-            ubicacion: "Venezuela",
-            tipo: "Búsqueda general",
-            telefono: "",
-            servicios: [],
-            resumen: `Para usar AI, configura GOOGLE_GEMINI_API_KEY en Vercel. Tu búsqueda fue: "${query}"`,
-            fuente: "Sistema",
-            score_calidad: 0,
-          },
-        ],
+        resultados: [{
+          titulo: "API Key no configurada",
+          precio: 0,
+          ubicacion: "Configura GOOGLE_GEMINI_API_KEY en Vercel",
+          tipo: "Info",
+          telefono: "",
+          servicios: [],
+          resumen: "Necesitas agregar tu API key de Google Gemini en las variables de entorno de Vercel.",
+          fuente: "Sistema",
+          score_calidad: 0,
+        }],
       });
     }
 
-    // Use Google Gemini to analyze and extract property data
-    const { GoogleGenerativeAI } = await import("@google/generative-ai");
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const prompt = `Eres un experto en bienes raíces venezolanos. Analiza esta búsqueda y genera propiedades realistas en Venezuela.
 
-    const prompt = `Analiza esta búsqueda inmobiliaria y extrae propiedades encontradas en Venezuela.
-Búsqueda del usuario: "${query}"
+Búsqueda: "${query}"
 
-Responde SOLO con un JSON válido con este formato:
+Genera exactamente 5 propiedades realistas con este formato JSON (sin texto adicional, solo el JSON):
+
 [
   {
-    "titulo": "Título descriptivo de la propiedad",
+    "titulo": "Descriptive title of the property",
     "precio": 35000,
-    "ubicacion": "Dirección, Ciudad, Estado",
+    "ubicacion": "Address, City, State, Venezuela",
     "tipo": "Apartamento/Casa/Townhouse/Terreno",
     "telefono": "0414-1234567",
     "servicios": ["Pozo", "Planta", "Fibra"],
-    "resumen": "Descripción breve de 1-2 líneas",
-    "fuente": "Fuente de donde se obtuvo",
+    "resumen": "Brief 1-2 line description",
+    "fuente": "Facebook Marketplace",
     "score_calidad": 85
   }
 ]
 
-Si no encuentras propiedades específicas, genera 3 ejemplos realistas basados en la búsqueda.
-El score_calidad va de 0-100 y evalúa qué tan completa y confiable es la información.
-Solo responde con el JSON, sin texto adicional.`;
+Reglas:
+- Precios realistas en USD para Venezuela (5000-300000)
+- Teléfonos venezolanos (0414, 0424, 0412, 0212)
+- Ciudades reales: Valencia, Caracas, Maracaibo, Barquisimeto, Maracay, etc.
+- Servicios comunes: Pozo, Planta, Fibra, Gas Directo
+- Score de 0-100 basado en completitud de datos
+- Solo responde con el JSON, nada más`;
 
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const text = response.text();
+    // Try Gemini API with fetch (more compatible)
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 2048,
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Gemini API error:", response.status, errorText);
+      return NextResponse.json({
+        resultados: [{
+          titulo: "Error en API de Gemini",
+          precio: 0,
+          ubicacion: `Status: ${response.status}`,
+          tipo: "Error",
+          telefono: "",
+          servicios: [],
+          resumen: `Error: ${errorText.substring(0, 200)}`,
+          fuente: "Sistema",
+          score_calidad: 0,
+        }],
+      });
+    }
+
+    const data = await response.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
     // Parse JSON from response
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    const jsonMatch = text.match(/\[[\s\S]*?\]/);
     if (jsonMatch) {
       const resultados = JSON.parse(jsonMatch[0]);
       return NextResponse.json({ resultados });
     }
 
-    return NextResponse.json({ resultados: [] });
+    return NextResponse.json({
+      resultados: [{
+        titulo: "Sin resultados parseables",
+        precio: 0,
+        ubicacion: "",
+        tipo: "Info",
+        telefono: "",
+        servicios: [],
+        resumen: text.substring(0, 200),
+        fuente: "Gemini",
+        score_calidad: 0,
+      }],
+    });
   } catch (error) {
     console.error("AI Search error:", error);
-    return NextResponse.json({ error: "Error en búsqueda AI", resultados: [] }, { status: 500 });
+    return NextResponse.json({
+      resultados: [{
+        titulo: "Error interno",
+        precio: 0,
+        ubicacion: "",
+        tipo: "Error",
+        telefono: "",
+        servicios: [],
+        resumen: String(error),
+        fuente: "Sistema",
+        score_calidad: 0,
+      }],
+    }, { status: 500 });
   }
 }

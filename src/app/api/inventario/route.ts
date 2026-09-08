@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         precio_m2: body.precio_m2 || 0,
         servicios: body.servicios || "Básicos",
         descripcion: body.descripcion || "",
-        fotos_rutas: "",
+        fotos_rutas: body.fotos_rutas || "",
         contacto_dueno: body.contacto_dueno || "",
         estatus: "DISPONIBLE",
       })
