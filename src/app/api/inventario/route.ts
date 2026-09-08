@@ -62,3 +62,29 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Error al eliminar" }, { status: 500 });
   }
 }
+
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { id, ...updates } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "ID requerido" }, { status: 400 });
+    }
+
+    const { data, error } = await supabase
+      .from("inventario")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, inmueble: data });
+  } catch {
+    return NextResponse.json({ error: "Error al actualizar" }, { status: 500 });
+  }
+}

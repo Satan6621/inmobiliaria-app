@@ -321,10 +321,31 @@ export default function InventarioPage() {
 
             return (
               <div key={inm.id} className="glass-card p-6 animate-slide-up">
+                {/* Imágenes */}
+                {inm.fotos_rutas && inm.fotos_rutas.split(",").filter(Boolean).length > 0 && (
+                  <div className="mb-4 -mx-6 -mt-6">
+                    <div className="flex gap-2 overflow-x-auto p-4 pb-2">
+                      {inm.fotos_rutas.split(",").filter(Boolean).map((foto, idx) => (
+                        <img
+                          key={idx}
+                          src={foto.trim()}
+                          alt={`${inm.titulo} - Foto ${idx + 1}`}
+                          className="h-48 w-auto rounded-lg object-cover flex-shrink-0"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <span className={`badge ${badgeColor}`}>{inm.estatus}</span>
                     <span className="badge badge-primary">{inm.tipo}</span>
+                    {inm.fotos_rutas && inm.fotos_rutas.split(",").filter(Boolean).length > 0 && (
+                      <span className="badge bg-surface-elevated text-text-muted text-xs">
+                        📷 {inm.fotos_rutas.split(",").filter(Boolean).length} fotos
+                      </span>
+                    )}
                   </div>
                   <span className="text-lg font-bold text-success">{formatCurrency(inm.precio_venta)}</span>
                 </div>
@@ -407,6 +428,25 @@ export default function InventarioPage() {
                   <WhatsAppButton
                     phone={inm.contacto_dueno}
                     property={{ tipo: inm.tipo, urbanizacion: inm.urbanizacion, ciudad: inm.ciudad, precio: inm.precio_venta }}
+                  />
+                </div>
+
+                {/* Agregar fotos a propiedad existente */}
+                <div className="border-t border-border-subtle pt-4 mb-4">
+                  <label className="text-xs font-medium text-text-secondary mb-2 block">Agregar Fotos</label>
+                  <ImageUpload
+                    onUpload={async (urls) => {
+                      const fotosActuales = inm.fotos_rutas ? inm.fotos_rutas.split(",").filter(Boolean) : [];
+                      const nuevasFotos = [...fotosActuales, ...urls].join(",");
+                      await fetch("/api/inventario", {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id: inm.id, fotos_rutas: nuevasFotos }),
+                      });
+                      fetchInventario();
+                    }}
+                    existingImages={inm.fotos_rutas ? inm.fotos_rutas.split(",").filter(Boolean) : []}
+                    maxFiles={10}
                   />
                 </div>
 
