@@ -27,21 +27,28 @@ interface Prospecto {
 
 export default function CRMPage() {
   const [prospectos, setProspectos] = useState<Prospecto[]>([]);
+  const [compradores, setCompradores] = useState<any[]>([]);
   const [filtroEstado, setFiltroEstado] = useState("TODOS");
   const [loading, setLoading] = useState(true);
   const [editando, setEditando] = useState<number | null>(null);
   const [nuevoEstado, setNuevoEstado] = useState("");
   const [notaRapida, setNotaRapida] = useState("");
+  const [activeTab, setActiveTab] = useState<"prospectos" | "compradores">("prospectos");
 
   useEffect(() => {
-    fetchProspectos();
+    fetchData();
   }, []);
 
-  const fetchProspectos = async () => {
+  const fetchData = async () => {
     try {
-      const res = await fetch("/api/prospectos");
-      const data = await res.json();
-      setProspectos(data.prospectos || []);
+      const [prospectosRes, compradoresRes] = await Promise.all([
+        fetch("/api/prospectos"),
+        fetch("/api/compradores"),
+      ]);
+      const prospectosData = await prospectosRes.json();
+      const compradoresData = await compradoresRes.json();
+      setProspectos(prospectosData.prospectos || []);
+      setCompradores(compradoresData.data || []);
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -78,6 +85,8 @@ export default function CRMPage() {
     nuevos: prospectos.filter((p) => p.estado_gestion === "NUEVO").length,
     contactados: prospectos.filter((p) => p.estado_gestion === "CONTACTADO").length,
     negociacion: prospectos.filter((p) => p.estado_gestion === "EN NEGOCIACION").length,
+    totalCompradores: compradores.length,
+    compradoresActivos: compradores.filter((c) => c.estado_comprador === "Activo").length,
   };
 
   if (loading) {
@@ -111,10 +120,10 @@ export default function CRMPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
         <div className="stat-card text-center">
           <p className="text-2xl font-bold text-text-primary">{stats.total}</p>
-          <p className="text-xs text-text-muted">Total en Base</p>
+          <p className="text-xs text-text-muted">Vendedores</p>
         </div>
         <div className="stat-card text-center">
           <p className="text-2xl font-bold text-blue-400">{stats.nuevos}</p>
@@ -128,41 +137,73 @@ export default function CRMPage() {
           <p className="text-2xl font-bold text-emerald-400">{stats.negociacion}</p>
           <p className="text-xs text-text-muted">En Negociación</p>
         </div>
+        <div className="stat-card text-center">
+          <p className="text-2xl font-bold text-primary">{stats.totalCompradores}</p>
+          <p className="text-xs text-text-muted">Compradores</p>
+        </div>
+        <div className="stat-card text-center">
+          <p className="text-2xl font-bold text-success">{stats.compradoresActivos}</p>
+          <p className="text-xs text-text-muted">Compr. Activos</p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6">
+        <button
+          onClick={() => setActiveTab("prospectos")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeTab === "prospectos"
+              ? "bg-primary text-white"
+              : "bg-surface-elevated text-text-muted hover:bg-surface-hover"
+          }`}
+        >
+          Vendedores ({stats.total})
+        </button>
+        <button
+          onClick={() => setActiveTab("compradores")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeTab === "compradores"
+              ? "bg-primary text-white"
+              : "bg-surface-elevated text-text-muted hover:bg-surface-hover"
+          }`}
+        >
+          Compradores ({stats.totalCompradores})
+        </button>
       </div>
 
       {/* Filtros */}
-      <div className="glass-card p-4 mb-6">
-        <div className="flex items-center gap-4">
-          <BarChart3 className="w-4 h-4 text-text-muted" />
-          <select
-            value={filtroEstado}
-            onChange={(e) => setFiltroEstado(e.target.value)}
-            className="select-field w-auto"
-          >
-            <option value="TODOS">Todos los estados</option>
-            {ESTADOS_GESTION.map((est) => (
-              <option key={est} value={est}>{est}</option>
-            ))}
-          </select>
-          <span className="text-xs text-text-muted">
-            {prospectosFiltrados.length} resultados
-          </span>
+      {activeTab === "prospectos" && (
+        <div className="glass-card p-4 mb-6">
+          <div className="flex items-center gap-4">
+            <BarChart3 className="w-4 h-4 text-text-muted" />
+            <select
+              value={filtroEstado}
+              onChange={(e) => setFiltroEstado(e.target.value)}
+              className="select-field w-auto"
+            >
+              <option value="TODOS">Todos los estados</option>
+              {ESTADOS_GESTION.map((est) => (
+                <option key={est} value={est}>{est}</option>
+              ))}
+            </select>
+            <span className="text-xs text-text-muted">
+              {prospectosFiltrados.length} resultados
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Tabla */}
-      {prospectosFiltrados.length === 0 ? (
+      {/* Tabla de Prospectos */}
+      {activeTab === "prospectos" && prospectosFiltrados.length === 0 && (
         <div className="glass-card p-12 text-center">
           <Users className="w-12 h-12 text-text-muted mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-text-primary mb-2">
-            Sin prospectos
-          </h3>
-          <p className="text-sm text-text-secondary">
-            Ejecuta un rastreo en la pestaña &quot;Rastreador&quot; para capturar leads.
-          </p>
+          <h3 className="text-lg font-semibold text-text-primary mb-2">Sin prospectos</h3>
+          <p className="text-sm text-text-secondary">Ejecuta un rastreo en &quot;Rastreador&quot; para capturar leads.</p>
         </div>
-      ) : (
-        <div className="table-container">
+      )}
+
+      {activeTab === "prospectos" && prospectosFiltrados.length > 0 && (
+        <div className="table-container overflow-x-auto">
           <table>
             <thead>
               <tr>
@@ -192,9 +233,7 @@ export default function CRMPage() {
                     </span>
                   </td>
                   <td>
-                    <span className={`badge ${
-                      p.rol.includes("VENDEDOR") ? "badge-warning" : "badge-info"
-                    }`}>
+                    <span className={`badge ${p.rol.includes("VENDEDOR") ? "badge-warning" : "badge-info"}`}>
                       {p.rol}
                     </span>
                   </td>
@@ -208,33 +247,19 @@ export default function CRMPage() {
                   <td>
                     <div className="flex items-center gap-1">
                       {p.whatsapp_link && (
-                        <a
-                          href={p.whatsapp_link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-1.5 rounded-lg hover:bg-surface-hover text-success"
-                        >
+                        <a href={p.whatsapp_link} target="_blank" rel="noopener noreferrer"
+                          className="p-1.5 rounded-lg hover:bg-surface-hover text-success">
                           <Phone className="w-3.5 h-3.5" />
                         </a>
                       )}
                       {p.enlace && (
-                        <a
-                          href={p.enlace}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-1.5 rounded-lg hover:bg-surface-hover text-blue-400"
-                        >
+                        <a href={p.enlace} target="_blank" rel="noopener noreferrer"
+                          className="p-1.5 rounded-lg hover:bg-surface-hover text-blue-400">
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
                       )}
-                      <button
-                        onClick={() => {
-                          setEditando(p.id);
-                          setNuevoEstado(p.estado_gestion);
-                          setNotaRapida(p.notas);
-                        }}
-                        className="p-1.5 rounded-lg hover:bg-surface-hover text-text-muted"
-                      >
+                      <button onClick={() => { setEditando(p.id); setNuevoEstado(p.estado_gestion); setNotaRapida(p.notas); }}
+                        className="p-1.5 rounded-lg hover:bg-surface-hover text-text-muted">
                         <Edit3 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -244,6 +269,64 @@ export default function CRMPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Tabla de Compradores */}
+      {activeTab === "compradores" && (
+        compradores.length === 0 ? (
+          <div className="glass-card p-12 text-center">
+            <Users className="w-12 h-12 text-text-muted mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-text-primary mb-2">Sin compradores</h3>
+            <p className="text-sm text-text-secondary">Agrega compradores en la sección &quot;Compradores&quot;.</p>
+          </div>
+        ) : (
+          <div className="table-container overflow-x-auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Teléfono</th>
+                  <th>Ciudad</th>
+                  <th>Tipo</th>
+                  <th>Presupuesto</th>
+                  <th>Habs</th>
+                  <th>Estado</th>
+                  <th>Prioridad</th>
+                </tr>
+              </thead>
+              <tbody>
+                {compradores.map((c) => (
+                  <tr key={c.id}>
+                    <td className="text-sm font-medium">{c.nombre}</td>
+                    <td className="text-xs">{c.telefono}</td>
+                    <td className="text-sm">{c.ciudad}</td>
+                    <td><span className="badge badge-info">{c.tipo_propiedad}</span></td>
+                    <td className="text-sm">${c.presupuesto_min?.toLocaleString()} - ${c.presupuesto_max?.toLocaleString()}</td>
+                    <td className="text-sm">{c.habitaciones_min}-{c.habitaciones_max}</td>
+                    <td>
+                      <span className={`badge ${
+                        c.estado_comprador === "Activo" ? "badge-success" :
+                        c.estado_comprador === "En Negociación" ? "badge-warning" :
+                        "bg-surface-elevated text-text-muted"
+                      }`}>
+                        {c.estado_comprador}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`badge ${
+                        c.prioridad === "Urgente" ? "badge-danger" :
+                        c.prioridad === "Alta" ? "badge-warning" :
+                        "bg-surface-elevated text-text-muted"
+                      }`}>
+                        {c.prioridad}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
       )}
 
       {/* Modal de Edición */}
