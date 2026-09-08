@@ -3,18 +3,18 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(request: NextRequest) {
   try {
     const { query } = await request.json();
-    const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+    const apiKey = process.env.OPENROUTER_API_KEY;
 
     if (!apiKey) {
       return NextResponse.json({
         resultados: [{
           titulo: "API Key no configurada",
           precio: 0,
-          ubicacion: "Configura GOOGLE_GEMINI_API_KEY en Vercel",
+          ubicacion: "Configura OPENROUTER_API_KEY en Vercel",
           tipo: "Info",
           telefono: "",
           servicios: [],
-          resumen: "Necesitas agregar tu API key de Google Gemini en las variables de entorno de Vercel.",
+          resumen: "Necesitas agregar tu API key de OpenRouter en las variables de entorno. Obtén una gratis en https://openrouter.ai/keys",
           fuente: "Sistema",
           score_calidad: 0,
         }],
@@ -49,42 +49,76 @@ Reglas:
 - Score de 0-100 basado en completitud de datos
 - Solo responde con el JSON, nada más`;
 
-    // Try Gemini API with fetch (more compatible)
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 2048,
-          },
-        }),
-      }
-    );
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+        "HTTP-Referer": "https://venezuela-inmobiliaria.vercel.app",
+        "X-Title": "Venezuela Inmobiliaria",
+      },
+      body: JSON.stringify({
+        model: "meta-llama/llama-3.1-8b-instruct:free",
+        messages: [
+          { role: "system", content: "Eres un experto en bienes raíces venezolanos. Solo respondes con JSON válido." },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.7,
+        max_tokens: 2048,
+      }),
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Gemini API error:", response.status, errorText);
-      return NextResponse.json({
-        resultados: [{
-          titulo: "Error en API de Gemini",
-          precio: 0,
-          ubicacion: `Status: ${response.status}`,
-          tipo: "Error",
-          telefono: "",
-          servicios: [],
-          resumen: `Error: ${errorText.substring(0, 200)}`,
-          fuente: "Sistema",
-          score_calidad: 0,
-        }],
+      console.error("OpenRouter API error:", response.status, errorText);
+
+      // Try fallback model
+      const fallbackResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+          "HTTP-Referer": "https://venezuela-inmobiliaria.vercel.app",
+          "X-Title": "Venezuela Inmobiliaria",
+        },
+        body: JSON.stringify({
+          model: "mistralai/mistral-7b-instruct:free",
+          messages: [
+            { role: "system", content: "Eres un experto en bienes raíces venezolanos. Solo respondes con JSON válido." },
+            { role: "user", content: prompt },
+          ],
+          temperature: 0.7,
+          max_tokens: 2048,
+        }),
       });
+
+      if (!fallbackResponse.ok) {
+        const fallbackError = await fallbackResponse.text();
+        return NextResponse.json({
+          resultados: [{
+            titulo: "Error en API de IA",
+            precio: 0,
+            ubicacion: `Status: ${fallbackResponse.status}`,
+            tipo: "Error",
+            telefono: "",
+            servicios: [],
+            resumen: `Error: ${fallbackError.substring(0, 200)}`,
+            fuente: "Sistema",
+            score_calidad: 0,
+          }],
+        });
+      }
+
+      const fallbackData = await fallbackResponse.json();
+      const fallbackText = fallbackData.choices?.[0]?.message?.content || "";
+      const fallbackJsonMatch = fallbackText.match(/\[[\s\S]*?\]/);
+      if (fallbackJsonMatch) {
+        return NextResponse.json({ resultados: JSON.parse(fallbackJsonMatch[0]) });
+      }
     }
 
     const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const text = data.choices?.[0]?.message?.content || "";
 
     // Parse JSON from response
     const jsonMatch = text.match(/\[[\s\S]*?\]/);
@@ -102,7 +136,7 @@ Reglas:
         telefono: "",
         servicios: [],
         resumen: text.substring(0, 200),
-        fuente: "Gemini",
+        fuente: "IA",
         score_calidad: 0,
       }],
     });
