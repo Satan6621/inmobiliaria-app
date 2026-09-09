@@ -21,6 +21,7 @@ import {
   TrendingUp,
   Calendar,
   Bell,
+  UserCheck,
 } from "lucide-react";
 import { useState } from "react";
 import { ThemeToggle } from "./theme-toggle";
@@ -29,6 +30,7 @@ const navItems = [
   { href: "/rastreador", label: "Rastreador", icon: Search, color: "text-blue-600" },
   { href: "/crm", label: "CRM & Leads", icon: Users, color: "text-emerald-600" },
   { href: "/inventario", label: "Inventario", icon: Home, color: "text-amber-600" },
+  { href: "/mi-crm", label: "Mi CRM", icon: UserCheck, color: "text-indigo-600" },
   { href: "/compradores", label: "Compradores", icon: Users, color: "text-success" },
   { href: "/calendario", label: "Calendario", icon: Calendar, color: "text-cyan-600" },
   { href: "/seguimiento", label: "Seguimiento", icon: Bell, color: "text-warning" },

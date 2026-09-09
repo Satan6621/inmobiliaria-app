@@ -1,4 +1,5 @@
 export const ZONAS_DISPONIBLES: Record<string, string> = {
+  "Cojedes (San Carlos, Tinaquillo)": "Cojedes",
   "Carabobo (Valencia, San Diego, Naguanagua, Los Guayos)": "Valencia Carabobo",
   "Caracas (Distrito Capital)": "Caracas",
   "Miranda (Chacao, Baruta, El Hatillo, San Antonio)": "Chacao Miranda",
@@ -7,7 +8,25 @@ export const ZONAS_DISPONIBLES: Record<string, string> = {
   "Zulia (Maracaibo, San Francisco)": "Maracaibo",
   "Anzoátegui (Lechería, Puerto La Cruz)": "Lecheria",
   "Nueva Esparta (Margarita, Porlamar)": "Margarita",
+  "Bolívar (Ciudad Guayana, Puerto Ordaz)": "Bolívar",
+  "Falcón (Coro, Punto Fijo)": "Falcón",
+  "Mérida (Mérida, El Vigía)": "Mérida",
+  "Táchira (San Cristóbal, Mérida)": "Táchira",
+  "Trujillo (Trujillo, Valera)": "Trujillo",
+  "Yaracuy (San Felipe)": "Yaracuy",
+  "Guárico (San Juan de los Morros)": "Guárico",
+  "Monagas (Maturín)": "Monagas",
+  "Sucre (Cumaná)": "Sucre",
+  "Amazonas (Puerto Ayacucho)": "Amazonas",
+  "Delta Amacuro (Tucupita)": "Delta Amacuro",
+  "Vargas (La Guaira)": "Vargas",
 };
+
+export const ESTADOS_VENEZUELA = [
+  "Cojedes", "Carabobo", "Distrito Capital", "Miranda", "Aragua", "Lara", "Zulia",
+  "Anzoátegui", "Bolívar", "Falcón", "Mérida", "Táchira", "Trujillo", "Yaracuy",
+  "Guárico", "Monagas", "Sucre", "Nueva Esparta", "Amazonas", "Delta Amacuro", "Vargas",
+] as const;
 
 export const TERMINOS_INMOBILIARIOS = [
   "apartamento", "apto", "casa", "townhouse", "town house", "th",
@@ -43,8 +62,6 @@ export const PALABRAS_COMPRADOR = [
 export const ESTADOS_GESTION = ["NUEVO", "CONTACTADO", "EN NEGOCIACION", "DESCARTADO"] as const;
 
 export const TIPOS_INMUEBLE = ["Apartamento", "Casa", "Townhouse", "Terreno", "Galpón", "Oficina/Local"] as const;
-
-export const ESTADOS_VENEZUELA = ["Carabobo", "Distrito Capital", "Miranda", "Aragua", "Lara", "Zulia", "Anzoátegui", "Otro"] as const;
 
 export const DEFAULT_BOT_TOKEN = "8918703330:AAG74VYqyO0L11y0BKqCy5HFiAqPbBWCJOM";
 export const DEFAULT_CHAT_ID = "1841487600";
