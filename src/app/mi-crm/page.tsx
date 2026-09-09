@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   User, Plus, Pause, Play, Eye, Heart, MessageSquare, TrendingUp,
   Home, DollarSign, Trash2, CameraOff, Star, CheckCircle2,
+  Wifi, WifiOff, Loader2, Send,
 } from "lucide-react";
 import { ImageUpload } from "@/components/image-upload";
 import { formatCurrency } from "@/lib/utils";
 import { ESTADOS_VENEZUELA } from "@/lib/constants";
+import { useRealtimeTable } from "@/lib/realtime";
 
 interface PropiedadAgent {
   id: string;
@@ -23,6 +25,7 @@ interface PropiedadAgent {
   pagada: boolean;
   fechaPublicacion: string;
   imagenes: string[];
+  estatus?: string;
 }
 
 interface PerfilAgent {
@@ -63,59 +66,221 @@ const emptyPropiedad: PropiedadAgent = {
 export default function MicroCrmPage() {
   const [perfil, setPerfil] = useState<PerfilAgent>(defaultPerfil);
   const [propiedades, setPropiedades] = useState<PropiedadAgent[]>([]);
+  const [online, setOnline] = useState(true);
+  const [cargando, setCargando] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [showPerfil, setShowPerfil] = useState(false);
   const [form, setForm] = useState<PropiedadAgent>(emptyPropiedad);
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  // Perfil en localStorage
   useEffect(() => {
     const perfilSaved = localStorage.getItem("perfil_agente");
-    const propsSaved = localStorage.getItem("propiedades_agente");
     if (perfilSaved) setPerfil(JSON.parse(perfilSaved));
-    if (propsSaved) setPropiedades(JSON.parse(propsSaved));
   }, []);
 
   useEffect(() => {
     localStorage.setItem("perfil_agente", JSON.stringify(perfil));
   }, [perfil]);
 
-  useEffect(() => {
-    localStorage.setItem("propiedades_agente", JSON.stringify(propiedades));
-  }, [propiedades]);
-
-  const savePropiedad = () => {
-    if (!form.titulo || form.precio <= 0) return;
-    if (editingId) {
-      setPropiedades(propiedades.map((p) => p.id === editingId ? { ...p, ...form } : p));
-    } else {
-      setPropiedades([...propiedades, { ...form, id: Date.now().toString() }]);
+  // Carga inicial desde Supabase
+  const cargarPropiedades = useCallback(async () => {
+    setCargando(true);
+    try {
+      const res = await fetch("/api/propiedades");
+      const data = await res.json();
+      if (data.offline) {
+        setOnline(false);
+        const propsSaved = localStorage.getItem("propiedades_agente");
+        if (propsSaved) setPropiedades(JSON.parse(propsSaved));
+      } else {
+        setOnline(true);
+        const mapeadas = (data.propiedades || []).map((p: any) => ({
+          id: p.id || String(Date.now()),
+          titulo: p.titulo || "Sin título",
+          precio: Number(p.precio || 0),
+          tipo: p.tipo_inmueble || "Apartamento",
+          estado: p.estado_id ? p.estado_id : "Cojedes",
+          municipio: p.municipio_id || "San Carlos",
+          zona: p.direccion_completa || p.descripcion || "",
+          habitaciones: p.habitaciones || 0,
+          banos: p.banos || 0,
+          renderizador: {
+            vistas: p.vistas || 0,
+            guardados: p.guardados || 0,
+            contactos: p.contactos || 0,
+          },
+          pagada: p.esta_verificado || false,
+          fechaPublicacion: (p.created_at || "").split("T")[0],
+          imagenes: p.imagenes_urls || [],
+          estatus: p.estatus || "DISPONIBLE",
+        }));
+        setPropiedades(mapeadas as PropiedadAgent[]);
+        localStorage.setItem("propiedades_agente", JSON.stringify(mapeadas));
+      }
+    } catch {
+      setOnline(false);
+      const propsSaved = localStorage.getItem("propiedades_agente");
+      if (propsSaved) setPropiedades(JSON.parse(propsSaved));
+    } finally {
+      setCargando(false);
     }
+  }, []);
+
+  useEffect(() => {
+    cargarPropiedades();
+  }, [cargarPropiedades]);
+
+  // REALTIME: escuchar cambios de otras sesiones en la tabla propiedades
+  const { status: rtStatus } = useRealtimeTable<any>(
+    "propiedades",
+    (payload) => {
+      setPropiedades((prev) => {
+        if (payload.eventType === "INSERT") {
+          const p = payload.new;
+          if (prev.some((x) => x.id === p.id)) return prev;
+          const nueva: PropiedadAgent = {
+            id: p.id,
+            titulo: p.titulo || "Sin título",
+            precio: Number(p.precio || 0),
+            tipo: p.tipo_inmueble || "Apartamento",
+            estado: "Cojedes",
+            municipio: "San Carlos",
+            zona: p.direccion_completa || p.descripcion || "",
+            habitaciones: p.habitaciones || 0,
+            banos: p.banos || 0,
+            renderizador: { vistas: p.vistas || 0, guardados: p.guardados || 0, contactos: p.contactos || 0 },
+            pagada: p.esta_verificado || false,
+            fechaPublicacion: (p.created_at || "").split("T")[0],
+            imagenes: p.imagenes_urls || [],
+            estatus: p.estatus || "DISPONIBLE",
+          };
+          return [nueva, ...prev].sort((a, b) => b.fechaPublicacion.localeCompare(a.fechaPublicacion));
+        }
+        if (payload.eventType === "UPDATE") {
+          return prev.map((x) =>
+            x.id === payload.new.id
+              ? {
+                  ...x,
+                  precio: Number(payload.new.precio || x.precio),
+                  titulo: payload.new.titulo || x.titulo,
+                  renderizador: {
+                    vistas: payload.new.vistas ?? x.renderizador.vistas,
+                    guardados: payload.new.guardados ?? x.renderizador.guardados,
+                    contactos: payload.new.contactos ?? x.renderizador.contactos,
+                  },
+                  estatus: payload.new.estatus,
+                }
+              : x
+          );
+        }
+        if (payload.eventType === "DELETE") {
+          return prev.filter((x) => x.id !== payload.old.id);
+        }
+        return prev;
+      });
+    }
+  );
+
+  useEffect(() => {
+    setOnline(rtStatus === "connected");
+  }, [rtStatus]);
+
+  const savePropiedad = async () => {
+    if (!form.titulo || form.precio <= 0) return;
+
+    if (online) {
+      try {
+        const body: any = {
+          titulo: form.titulo,
+          precio: form.precio,
+          tipo_inmueble: form.tipo,
+          estado: form.estado,
+          descripcion: `${form.municipio} - ${form.zona}`,
+          habitaciones: form.habitaciones,
+          banos: form.banos,
+          nombre_agente: perfil.nombre || "Agente",
+          telefono_agente: perfil.telefono || "",
+          estatus: form.estado === "Disponible" ? "DISPONIBLE" : form.estado.toUpperCase(),
+        };
+        if (form.imagenes.length > 0) body.imagenes = form.imagenes;
+
+        if (editingId) {
+          body.id = editingId;
+          await fetch("/api/propiedades", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+        } else {
+          await fetch("/api/propiedades", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+        }
+      } catch {
+        // Modo offline: guardar local
+        guardarLocal();
+      }
+    } else {
+      guardarLocal();
+    }
+
     setShowForm(false);
     setForm(emptyPropiedad);
     setEditingId(null);
+    cargarPropiedades();
   };
 
-  const togglePausa = (id: string) => {
-    setPropiedades(propiedades.map((p) =>
-      p.id === id
-        ? { ...p, estado: p.estado === "Pausado" ? "Disponible" : "Pausado" }
-        : p
-    ));
+  const guardarLocal = () => {
+    if (editingId) {
+      setPropiedades(propiedades.map((p) => (p.id === editingId ? { ...p, ...form } : p)));
+    } else {
+      setPropiedades([...propiedades, { ...form, id: Date.now().toString() }]);
+    }
   };
 
-  const cambiarEstado = (id: string, estado: string) => {
+  const togglePausa = async (id: string) => {
+    const p = propiedades.find((x) => x.id === id);
+    if (!p) return;
+    const nuevoEstado = p.estado === "Pausado" ? "Disponible" : "Pausado";
+    setPropiedades(propiedades.map((x) => (x.id === id ? { ...x, estado: nuevoEstado } : x)));
+    if (online) {
+      await fetch("/api/propiedades", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, estatus: nuevoEstado === "Pausado" ? "PAUSADO" : "DISPONIBLE" }),
+      });
+    }
+  };
+
+  const cambiarEstado = async (id: string, estado: string) => {
     setPropiedades(propiedades.map((p) => (p.id === id ? { ...p, estado } : p)));
+    if (online) {
+      await fetch("/api/propiedades", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, estatus: estado.toUpperCase() }),
+      });
+    }
   };
 
-  const eliminarPropiedad = (id: string) => {
-    if (confirm("¿Eliminar esta propiedad?")) {
-      setPropiedades(propiedades.filter((p) => p.id !== id));
+  const eliminarPropiedad = async (id: string) => {
+    if (!confirm("¿Eliminar esta propiedad?")) return;
+    setPropiedades(propiedades.filter((p) => p.id !== id));
+    if (online) {
+      await fetch("/api/propiedades", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
     }
   };
 
   const activas = propiedades.filter((p) => p.estado === "Disponible").length;
   const pausadas = propiedades.filter((p) => p.estado === "Pausado").length;
-  const vendidas = propiedades.filter((p) => p.estado === "Vendido").length;
+  const vendidas = propiedades.filter((p) => ["Vendido", "Arrendado"].includes(p.estado)).length;
   const totalVistas = propiedades.reduce((acc, p) => acc + p.renderizador.vistas, 0);
   const totalGuardados = propiedades.reduce((acc, p) => acc + p.renderizador.guardados, 0);
   const totalContactos = propiedades.reduce((acc, p) => acc + p.renderizador.contactos, 0);
@@ -134,7 +299,14 @@ export default function MicroCrmPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold font-[family-name:var(--font-display)]">Micro-CRM de Agentes</h1>
-            <p className="text-sm text-text-muted">{perfil.nombre ? `Hola, ${perfil.nombre}` : "Gestiona tus captaciones y métricas"}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-text-muted">
+                {perfil.nombre ? `Hola, ${perfil.nombre}` : "Gestiona tus captaciones y métricas"}
+              </p>
+              <span className={`badge ${online ? "badge-success" : "badge-danger"}`}>
+                {online ? <><Wifi className="w-3 h-3 mr-1" /> En vivo</> : <><WifiOff className="w-3 h-3 mr-1" /> Local</>}
+              </span>
+            </div>
           </div>
         </div>
         {perfil.nombre ? (
@@ -179,6 +351,7 @@ export default function MicroCrmPage() {
       <div className="glass-card p-4 mb-6">
         <h3 className="text-sm font-semibold text-text-primary mb-3 flex items-center gap-2">
           <TrendingUp className="w-4 h-4" /> Métricas de Interacción
+          {cargando && <Loader2 className="w-3 h-3 text-primary animate-spin" />}
         </h3>
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
@@ -237,7 +410,7 @@ export default function MicroCrmPage() {
                   <span className={`badge ${
                     p.estado === "Disponible" ? "badge-success" :
                     p.estado === "Pausado" ? "badge-warning" :
-                    p.estado === "Vendido" ? "badge-danger" : "badge-info"
+                    ["Vendido", "Arrendado"].includes(p.estado) ? "badge-danger" : "badge-info"
                   }`}>{p.estado}</span>
                 </div>
                 <div className="absolute bottom-2 right-2">
@@ -354,10 +527,11 @@ export default function MicroCrmPage() {
                 <ImageUpload
                   existingImages={form.imagenes}
                   maxFiles={10}
-                  onUpload={(urls) => setForm({ ...form, imagenes: urls })}
+                  onUpload={handleImagesUpload}
                 />
               </div>
-              <button onClick={savePropiedad} className="btn-primary w-full">
+              <button onClick={savePropiedad} className="btn-primary w-full flex items-center justify-center gap-2">
+                {online && <Send className="w-4 h-4" />}
                 {editingId ? "Actualizar" : "Publicar Propiedad"}
               </button>
             </div>

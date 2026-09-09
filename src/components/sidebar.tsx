@@ -23,8 +23,44 @@ import {
   Bell,
   UserCheck,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ThemeToggle } from "./theme-toggle";
+import { Wifi, WifiOff } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+
+// Indica en el sidebar si los datos se sincronizan con Supabase
+function ConnectionIndicator() {
+  const [status, setStatus] = useState<"checking" | "connected" | "offline">("checking");
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const { error } = await supabase.from("propiedades").select("id").limit(1);
+        if (mounted) setStatus(error ? "offline" : "connected");
+      } catch {
+        if (mounted) setStatus("offline");
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  if (status === "checking") return null;
+
+  return (
+    <div
+      className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium ${
+        status === "connected" ? "text-success bg-success/10" : "text-danger bg-danger/10"
+      }`}
+      title={status === "connected" ? "Sincronizado con Supabase" : "Sin conexión a Supabase (modo local)"}
+    >
+      {status === "connected" ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
+      {status === "connected" ? "En vivo" : "Local"}
+    </div>
+  );
+}
 
 const navItems = [
   { href: "/rastreador", label: "Rastreador", icon: Search, color: "text-blue-600" },
@@ -106,6 +142,7 @@ export function Sidebar() {
         <div className="flex justify-center">
           <ThemeToggle />
         </div>
+        {!collapsed && <ConnectionIndicator />}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors text-xs"

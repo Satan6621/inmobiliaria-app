@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from "react";
 import {
-  Search, Filter, Send, ExternalLink, Phone, Zap, AlertTriangle,
-  Loader2, Brain, Bookmark, Bell, BellOff, TrendingDown, MessageSquare,
+  Search, Filter, ExternalLink, Phone, Zap, AlertTriangle,
+  Loader2, Bookmark, Bell, BellOff, TrendingDown, MessageSquare,
   Eye, Heart, X,
 } from "lucide-react";
 import { ZONAS_DISPONIBLES } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
 import { AISearch } from "@/components/ai-search";
+import { usePropiedadesFeed, matchBusquedaYNotificar, pedirPermisoNotificaciones } from "@/lib/realtime";
+import { Wifi, WifiOff } from "lucide-react";
 
 interface ProspectoRastreo {
   fecha: string;
@@ -86,6 +88,51 @@ export default function RastreadorPage() {
   // Feed
   const [feed, setFeed] = useState<FeedItem[]>(FEED_SIMULADO);
 
+  // Realtime: feed de propiedades compartido entre agentes
+  const { items: feedRealtime, status: rtStatus, nuevoFeedItem } = usePropiedadesFeed(true);
+
+  useEffect(() => {
+    if (feedRealtime.length > 0) {
+      setFeed(
+        feedRealtime.slice(0, 20).map((item: any) => ({
+          id: item.id,
+          titulo: item.titulo || "Nueva propiedad",
+          precio: Number(item.precio || 0),
+          precioAnterior: item.precioAnterior || undefined,
+          zona: "Cojedes",
+          tipo: item.tipo_inmueble || "Apartamento",
+          fecha: new Date(item.created_at || Date.now()).toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit" }),
+          esBajada: false,
+        }))
+      );
+    }
+  }, [feedRealtime]);
+
+  const [notifBanner, setNotifBanner] = useState(false);
+
+  // Cuando llega una propiedad nueva por Realtime → comprobar alertas
+  useEffect(() => {
+    if (!nuevoFeedItem) return;
+    if (nuevoFeedItem.esBajada) {
+      setFeed((prev) => [
+        { ...nuevoFeedItem, zona: nuevoFeedItem.zona || "Cojedes", fecha: "Ahora", tipo: nuevoFeedItem.tipo || "Apartamento" },
+        ...prev.filter((f) => f.id !== nuevoFeedItem.id),
+      ].slice(0, 20));
+      return;
+    }
+    setFeed((prev) => [
+      { ...nuevoFeedItem, zona: nuevoFeedItem.zona || "Cojedes", fecha: "Ahora", tipo: nuevoFeedItem.tipo || "Apartamento" },
+      ...prev.filter((f) => f.id !== nuevoFeedItem.id),
+    ].slice(0, 20));
+
+    // Notificar si coincide con una búsqueda guardada
+    const coincide = matchBusquedaYNotificar(nuevoFeedItem, busquedas);
+    if (coincide) {
+      setNotifBanner(true);
+      setTimeout(() => setNotifBanner(false), 6000);
+    }
+  }, [nuevoFeedItem]);
+
   // Property stats (micro-CRM)
   const [propStats, setPropStats] = useState({ vistas: 0, guardados: 0, contactos: 0 });
 
@@ -141,7 +188,7 @@ export default function RastreadorPage() {
     );
   };
 
-  const guardarBusqueda = () => {
+  const guardarBusqueda = async () => {
     if (!nombreBusqueda.trim()) return;
     const nueva: BusquedaGuardada = {
       id: Date.now().toString(),
@@ -158,6 +205,26 @@ export default function RastreadorPage() {
     setBusquedas([...busquedas, nueva]);
     setNombreBusqueda("");
     setShowGuardar(false);
+
+    // Solicitar permiso de notificaciones del navegador
+    pedirPermisoNotificaciones();
+
+    // Guardar en Supabase para que otros dispositivos/agentes la vean
+    try {
+      await fetch("/api/alertas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          titulo: nueva.nombre,
+          nombre_agente: "Agente",
+          precio_min: precioMin,
+          precio_max: precioMax,
+          tipo_inmueble: tipoInmueble === "Todos" ? null : tipoInmueble,
+        }),
+      });
+    } catch {
+      // offline: permanece en localStorage
+    }
   };
 
   const toggleAlertaBusqueda = (id: string) => {
@@ -212,8 +279,22 @@ export default function RastreadorPage() {
         <div className="flex items-center gap-2 mb-3">
           <Zap className="w-4 h-4 text-warning" />
           <h2 className="text-sm font-semibold text-text-primary">Últimas Publicaciones en Tiempo Real</h2>
-          <span className="badge badge-success animate-pulse">LIVE</span>
+          {rtStatus === "connected" ? (
+            <span className="badge badge-success animate-pulse flex items-center gap-1">
+              <Wifi className="w-3 h-3" /> LIVE
+            </span>
+          ) : (
+            <span className="badge badge-danger flex items-center gap-1">
+              <WifiOff className="w-3 h-3" /> Demo
+            </span>
+          )}
         </div>
+        {notifBanner && (
+          <div className="flex items-center gap-2 p-3 mb-3 rounded-lg bg-success/10 border border-success/30 text-sm text-success animate-slide-up">
+            <Bell className="w-4 h-4 animate-ring" />
+            🔔 Nueva propiedad que coincide con tu búsqueda guardada. ¡Revisa el feed!
+          </div>
+        )}
         <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
           {feed.map((item) => (
             <div key={item.id} className={`flex-shrink-0 p-3 rounded-xl border transition-all hover:scale-105 cursor-pointer ${

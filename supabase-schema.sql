@@ -1,11 +1,15 @@
 -- ============================================================
--- INMOBILIARIA COJEDES - Esquema PostGIS para Supabase
+-- INMOBILIARIA COJEDES - ESQUEMA COMPLETO PARA SUPABASE
+-- Ejecutar en: Supabase Dashboard > SQL Editor > New query > Run
+-- Este script es IDEMPOTENTE: se puede ejecutar varias veces.
 -- ============================================================
 
 -- 1. Activar PostGIS para búsquedas geográficas por radar
 create extension if not exists postgis schema extensions;
 
--- 2. Jerarquía Geográfica (Indexación de Cojedes y todo Venezuela)
+-- ============================================================
+-- JERARQUÍA GEOGRÁFICA (Todos los estados de Venezuela)
+-- ============================================================
 create table if not exists estados (
     id bigint generated always as identity primary key,
     nombre text not null unique
@@ -25,66 +29,133 @@ create table if not exists zonas_urbanizaciones (
     unique(municipio_id, nombre)
 );
 
--- 3. Tabla Principal de Propiedades (Con soporte PostGIS y micro-CRM)
+-- ============================================================
+-- TABLA PRINCIPAL DE PROPIEDADES (PostGIS + Micro-CRM)
+-- ============================================================
 create table if not exists propiedades (
     id uuid default gen_random_uuid() primary key,
     user_id uuid references auth.users(id) on delete cascade,
+    codigo text unique, -- ej: COJ-102
     titulo text not null,
     descripcion text,
     tipo_transaccion text check (tipo_transaccion in ('compra', 'venta')),
-    tipo_inmueble text not null,
+    tipo_inmueble text not null, -- 'Apartamento','Casa','Townhouse','Terreno','Galpón','Local'
     estado_construccion text check (estado_construccion in ('obra_gris', 'obra_limpia', 'listo_para_habitar')),
     precio numeric(12, 2) not null,
     habitaciones int default 0,
     banos int default 0,
     metros_cuadrados numeric(8,2),
-    
-    -- Servicios críticos (Filtros específicos para el mercado local)
+    nombre_agente text,
+    telefono_agente text,
+
+    -- Servicios críticos del mercado local
     tiene_tanque_agua boolean default false,
     tiene_planta_electrica boolean default false,
     aire_acondicionado boolean default false,
     internet boolean default false,
     piscina boolean default false,
     garaje boolean default false,
-    
-    -- Ubicación exacta usando PostGIS
+
+    -- Ubicación
     estado_id bigint references estados(id),
     municipio_id bigint references municipios(id),
     zona_id bigint references zonas_urbanizaciones(id),
     direccion_completa text,
-    coordenadas extensions.geography(Point, 4326) not null,
-    
-    -- Módulo de Verificación
+    coordenadas extensions.geography(Point, 4326),
+
+    -- Verificación
     esta_verificado boolean default false,
-    verificado_at timestamp with zone,
-    
-    -- Micro-CRM (Métricas)
+    verificado_at timestamp with time zone,
+
+    -- Micro-CRM (métricas)
     vistas integer default 0,
     guardados integer default 0,
     contactos integer default 0,
     esta_paused boolean default false,
-    
-    created_at timestamp with zone default timezone('utc'::text, now()) not null,
-    updated_at timestamp with zone default timezone('utc'::text, now()) not null
+    estatus text default 'DISPONIBLE',
+
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+    updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- Índice espacial GIST para radar instantáneo
-create index if not exists propiedades_coordenadas_geo_idx on propiedades using gist(coordenadas);
+do $$ begin
+    create index if not exists propiedades_coordenadas_geo_idx on propiedades using gist(coordenadas);
+exception when others then null; end $$;
 
--- 4. Tabla Multimedia Optimizada
+-- ============================================================
+-- TABLA DE COMPRADORES (si no existe)
+-- ============================================================
+create table if not exists compradores (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) on delete cascade,
+  nombre text not null,
+  telefono text not null,
+  email text,
+  tipo_propiedad text not null default 'Apartamento',
+  presupuesto_min numeric(12,2) default 0,
+  presupuesto_max numeric(12,2) default 100000,
+  ciudad text not null,
+  estado text,
+  habitaciones_min integer default 1,
+  habitaciones_max integer default 5,
+  banos_min integer default 1,
+  servicios_requeridos text[] default '{}',
+  metraje_min integer default 0,
+  metraje_max integer default 500,
+  notas text,
+  fuente text default 'Directo',
+  estado_comprador text default 'Activo',
+  prioridad text default 'Normal',
+  fecha_contacto timestamptz default now(),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- ============================================================
+-- TABLA DE INVENTARIO PROPIETARIOS (si no existe)
+-- ============================================================
+create table if not exists inventario (
+    id uuid default gen_random_uuid() primary key,
+    titulo text,
+    tipo text default 'Apartamento',
+    estado text default 'Carabobo',
+    ciudad text,
+    urbanizacion text,
+    precio_dueno numeric(12,2) default 0,
+    precio_venta numeric(12,2) default 0,
+    habs int default 0,
+    banos int default 0,
+    puestos int default 0,
+    metros int default 0,
+    precio_m2 numeric(12,2) default 0,
+    servicios text,
+    descripcion text,
+    fotos_rutas text,
+    contacto_dueno text,
+    estatus text default 'DISPONIBLE',
+    created_at timestamptz default now(),
+    updated_at timestamptz default now()
+);
+
+-- ============================================================
+-- MULTIMEDIA OPTIMIZADA
+-- ============================================================
 create table if not exists propiedades_imagenes (
     id bigint generated always as identity primary key,
     propiedad_id uuid references propiedades(id) on delete cascade,
     url_imagen text not null,
     es_principal boolean default false,
-    created_at timestamp with zone default timezone('utc'::text, now()) not null
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 5. Alertas de Búsqueda (Filtros Guardados)
+-- ============================================================
+-- ALERTAS DE BÚSQUEDA (Filtros Guardados por el Usuario)
+-- ============================================================
 create table if not exists alertas_busqueda (
     id uuid default gen_random_uuid() primary key,
     user_id uuid references auth.users(id) on delete cascade,
     titulo text,
+    nombre_agente text,
     precio_min numeric(12, 2),
     precio_max numeric(12, 2),
     estado_id bigint references estados(id),
@@ -96,20 +167,25 @@ create table if not exists alertas_busqueda (
     esta_verificado boolean,
     activa boolean default true,
     notificaciones_enviadas int default 0,
-    created_at timestamp with zone default timezone('utc'::text, now()) not null
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+    updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 6. Historial de Precios (Para detectar bajadas)
+-- ============================================================
+-- HISTORIAL DE PRECIOS (para detectar bajadas)
+-- ============================================================
 create table if not exists historial_precios (
     id bigint generated always as identity primary key,
     propiedad_id uuid references propiedades(id) on delete cascade,
     precio_anterior numeric(12, 2) not null,
     precio_nuevo numeric(12, 2) not null,
     cambio_porcentaje numeric(5, 2),
-    created_at timestamp with zone default timezone('utc'::text, now()) not null
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 7. Tabla de Agentes/Corredores (Micro-CRM)
+-- ============================================================
+-- AGENTES / CORREDORES (Micro-CRM)
+-- ============================================================
 create table if not exists agentes (
     id uuid default gen_random_uuid() primary key,
     user_id uuid references auth.users(id) on delete cascade,
@@ -121,90 +197,108 @@ create table if not exists agentes (
     activo boolean default true,
     propiedades_count int default 0,
     ventas_totales numeric(12, 2) default 0,
-    created_at timestamp with zone default timezone('utc'::text, now()) not null
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 8. Favoritos de Usuarios
+-- ============================================================
+-- FAVORITOS
+-- ============================================================
 create table if not exists favoritos (
     id bigint generated always as identity primary key,
     user_id uuid references auth.users(id) on delete cascade,
     propiedad_id uuid references propiedades(id) on delete cascade,
-    created_at timestamp with zone default timezone('utc'::text, now()) not null,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null,
     unique(user_id, propiedad_id)
 );
 
 -- ============================================================
--- INSERCIÓN DE DATOS INICIALES - COJEDES
+-- RLS: habilitar y permitir acceso anónimo (misma política existente)
 -- ============================================================
+do $$ declare tbl text; begin
+    foreach tbl in array array['propiedades','compradores','inventario','propiedades_imagenes','alertas_busqueda','historial_precios','agentes','favoritos','estados','municipios','zonas_urbanizaciones'] loop
+        execute format('alter table %I enable row level security;', tbl);
+        execute format('drop policy if exists "allow_all_%I" on %I;', tbl, tbl);
+        execute format('create policy "allow_all_%I" on %I for all using (true) with check (true);', tbl, tbl);
+    end loop;
+end $$;
 
--- Estado Cojedes
-insert into estados (nombre) values ('Cojedes') on conflict do nothing;
+-- Trigger updated_at para tablas que lo requieren
+create or replace function update_timestamp()
+returns trigger as $$
+begin
+    new.updated_at = timezone('utc'::text, now());
+    return new;
+end;
+$$ language plpgsql;
 
--- Municipios de Cojedes (id = 1)
-insert into municipios (estado_id, nombre) values 
-(1, 'San Carlos'),
-(1, 'Tinaquillo'),
-(1, 'Anzoátegui'),
-(1, 'Girardot'),
-(1, 'Lima Blanco'),
-(1, 'Mocochí'),
-(1, 'Monagas'),
-(1, 'Ricaurte'),
-(1, 'San Andrés'),
-(1, 'Sucre'),
-(1, 'Tinaco'),
-(1, 'Turén')
-on conflict do nothing;
+do $$ begin
+    drop trigger if exists trg_propiedades_updated on propiedades;
+    drop trigger if exists trg_compradores_updated on compradores;
+    drop trigger if exists trg_inventario_updated on inventario;
+    drop trigger if exists trg_alertas_updated on alertas_busqueda;
+exception when others then null; end $$;
 
--- Zonas de San Carlos (municipio_id = 1)
-insert into zonas_urbanizaciones (municipio_id, nombre) values 
-(1, 'Centro de San Carlos'),
-(1, 'Urbanización Limoncito'),
-(1, 'Cantaclaro'),
-(1, 'Urbanización El Carmen'),
-(1, 'La Aurora'),
-(1, 'San Rafael')
-on conflict do nothing;
-
--- Zonas de Tinaquillo (municipio_id = 2)
-insert into zonas_urbanizaciones (municipio_id, nombre) values 
-(2, 'Centro de Tinaquillo'),
-(2, 'La Campiña'),
-(2, 'El(coeffs),
-(2, 'Villa Italia'),
-(2, 'Los Samanes'),
-(2, 'Urbanización Miranda')
-on conflict do nothing;
-
--- Otros estados de Venezuela
-insert into estados (nombre) values 
-('Aragua'),
-('Carabobo'),
-('Lara'),
-('Zulia'),
-('Miranda'),
-('Distrito Capital'),
-('Bolívar'),
-('Falcón'),
-('Mérida'),
-('Táchira'),
-('Trujillo'),
-('Yaracuy'),
-('Nueva Esparta'),
-('Guárico'),
-('Anzoátegui'),
-('Monagas'),
-('Sucre'),
-('Delta Amacuro'),
-('Amazonas'),
-('Vargas')
-on conflict do nothing;
+create trigger trg_propiedades_updated before update on propiedades
+    for each row execute function update_timestamp();
+create trigger trg_compradores_updated before update on compradores
+    for each row execute function update_timestamp();
+create trigger trg_inventario_updated before update on inventario
+    for each row execute function update_timestamp();
+create trigger trg_alertas_updated before update on alertas_busqueda
+    for each row execute function update_timestamp();
 
 -- ============================================================
--- FUNCIONES RPC PARA EL RADAR
+-- DATA INICIAL: Venezuela (21 estados) + Cojedes completo
+-- ============================================================
+insert into estados (nombre) values
+('Cojedes'),('Carabobo'),('Distrito Capital'),('Miranda'),('Aragua'),('Lara'),
+('Zulia'),('Anzoátegui'),('Bolívar'),('Falcón'),('Mérida'),('Táchira'),
+('Trujillo'),('Yaracuy'),('Guárico'),('Monagas'),('Sucre'),('Nueva Esparta'),
+('Amazonas'),('Delta Amacuro'),('Vargas')
+on conflict (nombre) do nothing;
+
+-- Municipios de Cojedes (estado 1)
+insert into municipios (estado_id, nombre) values
+((select id from estados where nombre='Cojedes'), 'San Carlos'),
+((select id from estados where nombre='Cojedes'), 'Tinaquillo'),
+((select id from estados where nombre='Cojedes'), 'Anzoátegui'),
+((select id from estados where nombre='Cojedes'), 'Girardot'),
+((select id from estados where nombre='Cojedes'), 'Lima Blanco'),
+((select id from estados where nombre='Cojedes'), 'Mocochí'),
+((select id from estados where nombre='Cojedes'), 'Monagas'),
+((select id from estados where nombre='Cojedes'), 'Ricaurte'),
+((select id from estados where nombre='Cojedes'), 'San Andrés'),
+((select id from estados where nombre='Cojedes'), 'Sucre'),
+((select id from estados where nombre='Cojedes'), 'Tinaco'),
+((select id from estados where nombre='Cojedes'), 'Turén')
+on conflict (estado_id, nombre) do nothing;
+
+-- Zonas de San Carlos
+insert into zonas_urbanizaciones (municipio_id, nombre) values
+((select id from municipios where nombre='San Carlos'), 'Centro de San Carlos'),
+((select id from municipios where nombre='San Carlos'), 'Urbanización Limoncito'),
+((select id from municipios where nombre='San Carlos'), 'Cantaclaro'),
+((select id from municipios where nombre='San Carlos'), 'Urbanización El Carmen'),
+((select id from municipios where nombre='San Carlos'), 'La Aurora'),
+((select id from municipios where nombre='San Carlos'), 'San Rafael'),
+((select id from municipios where nombre='San Carlos'), 'El Maracay')
+on conflict (municipio_id, nombre) do nothing;
+
+-- Zonas de Tinaquillo
+insert into zonas_urbanizaciones (municipio_id, nombre) values
+((select id from municipios where nombre='Tinaquillo'), 'Centro de Tinaquillo'),
+((select id from municipios where nombre='Tinaquillo'), 'La Campiña'),
+((select id from municipios where nombre='Tinaquillo'), 'Villa Italia'),
+((select id from municipios where nombre='Tinaquillo'), 'Los Samanes'),
+((select id from municipios where nombre='Tinaquillo'), 'Urbanización Miranda'),
+((select id from municipios where nombre='Tinaquillo'), 'La Macandona')
+on conflict (municipio_id, nombre) do nothing;
+
+-- ============================================================
+-- FUNCIONES RPC
 -- ============================================================
 
--- Función de Radar de Cercanía
+-- Radar de cercanía (búsqueda por radio en metros)
 create or replace function buscar_propiedades_radar(
     lat_usuario double precision,
     lon_usuario double precision,
@@ -215,12 +309,13 @@ begin
     return query
     select *
     from propiedades
-    where extensions.ST_DWithin(
+    where coordenadas is not null
+      and extensions.ST_DWithin(
         coordenadas,
         extensions.ST_SetSRID(extensions.ST_MakePoint(lon_usuario, lat_usuario), 4326)::extensions.geography,
         radio_metros
-    )
-    and esta_paused = false
+      )
+      and not esta_paused
     order by extensions.ST_Distance(
         coordenadas,
         extensions.ST_SetSRID(extensions.ST_MakePoint(lon_usuario, lat_usuario), 4326)::extensions.geography
@@ -228,7 +323,6 @@ begin
 end;
 $$ language plpgsql security definer;
 
--- Función para incrementar vistas
 create or replace function incrementar_vistas(prop_id uuid)
 returns void as $$
 begin
@@ -236,7 +330,6 @@ begin
 end;
 $$ language plpgsql security definer;
 
--- Función para incrementar guardados
 create or replace function incrementar_guardados(prop_id uuid)
 returns void as $$
 begin
@@ -245,39 +338,58 @@ end;
 $$ language plpgsql security definer;
 
 -- ============================================================
--- TRIGGER: Actualizar contador de propiedades del agente
+-- TRIGGERS
 -- ============================================================
 
+-- Contador de propiedades por agente
 create or replace function actualizar_contador_agentes()
 returns trigger as $$
 begin
-    update agentes 
+    update agentes
     set propiedades_count = (select count(*) from propiedades where user_id = new.user_id)
     where user_id = new.user_id;
     return new;
 end;
 $$ language plpgsql;
 
+drop trigger if exists trigger_actualizar_agente on propiedades;
 create trigger trigger_actualizar_agente
 after insert or delete on propiedades
 for each row execute function actualizar_contador_agentes();
 
--- ============================================================
--- TRIGGER: Registrar historial de precios
--- ============================================================
-
+-- Registrar cambios de precio
 create or replace function registrar_cambio_precio()
 returns trigger as $$
 begin
     if old.precio <> new.precio then
         insert into historial_precios (propiedad_id, precio_anterior, precio_nuevo, cambio_porcentaje)
-        values (new.id, old.precio, new.precio, 
+        values (new.id, old.precio, new.precio,
                 round(((new.precio - old.precio) / old.precio * 100)::numeric, 2));
     end if;
     return new;
 end;
 $$ language plpgsql;
 
+drop trigger if exists trigger_historial_precios on propiedades;
 create trigger trigger_historial_precios
 before update on propiedades
 for each row execute function registrar_cambio_precio();
+
+-- ============================================================
+-- REALTIME: publicar cambios de estas tablas a los clientes
+-- ============================================================
+do $$ begin
+    alter publication supabase_realtime add table propiedades;
+exception when duplicate_object then null; end $$;
+do $$ begin
+    alter publication supabase_realtime add table alertas_busqueda;
+exception when duplicate_object then null; end $$;
+do $$ begin
+    alter publication supabase_realtime add table inventario;
+exception when duplicate_object then null; end $$;
+do $$ begin
+    alter publication supabase_realtime add table compradores;
+exception when duplicate_object then null; end $$;
+do $$ begin
+    alter publication supabase_realtime add table historial_precios;
+exception when duplicate_object then null; end $$;
