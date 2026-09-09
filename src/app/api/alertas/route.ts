@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseWithToken } from "@/lib/supabase";
 
-export async function GET() {
-  const { data, error } = await supabase
+function sbFor(request: NextRequest) {
+  const auth = request.headers.get("authorization");
+  const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
+  return createSupabaseWithToken(token);
+}
+
+export async function GET(request: NextRequest) {
+  const sb = sbFor(request);
+  const { data, error } = await sb
     .from("alertas_busqueda")
     .select("*")
     .order("created_at", { ascending: false });
@@ -19,9 +26,11 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { data, error } = await supabase
+    const sb = sbFor(request);
+    const { data, error } = await sb
       .from("alertas_busqueda")
       .insert({
+        user_id: body.user_id || null,
         titulo: body.titulo || "Mi búsqueda",
         nombre_agente: body.nombre_agente || "Agente",
         precio_min: body.precio_min || null,
@@ -57,7 +66,8 @@ export async function PUT(request: NextRequest) {
     const { id, ...updates } = body;
     if (!id) return NextResponse.json({ error: "ID requerido" }, { status: 400 });
 
-    const { data, error } = await supabase
+    const sb = sbFor(request);
+    const { data, error } = await sb
       .from("alertas_busqueda")
       .update(updates)
       .eq("id", id)
@@ -74,7 +84,8 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const { id } = await request.json();
-    const { error } = await supabase.from("alertas_busqueda").delete().eq("id", id);
+    const sb = sbFor(request);
+    const { error } = await sb.from("alertas_busqueda").delete().eq("id", id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ success: true });
   } catch {

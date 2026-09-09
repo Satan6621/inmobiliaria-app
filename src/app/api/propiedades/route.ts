@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseWithToken } from "@/lib/supabase";
+
+function sbFor(request: NextRequest) {
+  const auth = request.headers.get("authorization");
+  const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
+  return createSupabaseWithToken(token);
+}
 
 const ZONAS_POR_ESTADO: Record<string, string[]> = {
   Cojedes: ["San Carlos", "Tinaquillo", "Anzoátegui", "Girardot", "Tinaco"],
@@ -24,7 +30,8 @@ export async function GET(request: NextRequest) {
   const tipo = searchParams.get("tipo");
   const soloDisponibles = searchParams.get("disponibles") === "true";
 
-  let query = supabase.from("propiedades").select("*").order("created_at", { ascending: false });
+  const sb = sbFor(request);
+  let query = sb.from("propiedades").select("*").order("created_at", { ascending: false });
 
   if (tipo && tipo !== "Todos") query = query.eq("tipo_inmueble", tipo);
   if (soloDisponibles) query = query.not("estatus", "in", '(PAUSADO,VENDIDO)');
@@ -55,27 +62,29 @@ function generarCodigoEstado(nombreEstado: string, contador: number): string {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const sb = sbFor(request);
     const estado = body.estado || "Cojedes";
     const municipios = ZONAS_POR_ESTADO[estado] || ["San Carlos"];
 
     // Obtener ids geográficos
-    const { data: estadoRow } = await supabase.from("estados").select("id").eq("nombre", estado).maybeSingle();
+    const { data: estadoRow } = await sb.from("estados").select("id").eq("nombre", estado).maybeSingle();
     const estadoId = estadoRow?.id ?? null;
     const { data: municipioRow } = estadoId
-      ? await supabase.from("municipios").select("id").eq("estado_id", estadoId).in("nombre", municipios).limit(1).maybeSingle()
+      ? await sb.from("municipios").select("id").eq("estado_id", estadoId).in("nombre", municipios).limit(1).maybeSingle()
       : { data: null };
     const municipioId = municipioRow?.id ?? null;
 
     // Contador para código agrupado por estado
     const { count } = estadoId
-      ? await supabase.from("propiedades").select("id", { count: "exact", head: true }).eq("estado_id", estadoId)
+      ? await sb.from("propiedades").select("id", { count: "exact", head: true }).eq("estado_id", estadoId)
       : { count: 0 };
 
     const codigo = generarCodigoEstado(estado, count || 0);
 
-    const { data, error } = await supabase
+    const { data, error } = await sb
       .from("propiedades")
       .insert({
+        user_id: body.user_id || null,
         titulo: body.titulo || "Sin título",
         descripcion: body.descripcion || "",
         tipo_transaccion: body.tipo_transaccion || "venta",
@@ -106,9 +115,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Guardar imágenes
+    // Guardar imágenes (con token del usuario para respetar RLS)
     if (data && Array.isArray(body.imagenes) && body.imagenes.length > 0) {
-      await supabase.from("propiedades_imagenes").insert(
+      await sb.from("propiedades_imagenes").insert(
         body.imagenes.map((url: string, i: number) => ({
           propiedad_id: data.id,
           url_imagen: url,
@@ -130,7 +139,8 @@ export async function PUT(request: NextRequest) {
 
     if (!id) return NextResponse.json({ error: "ID requerido" }, { status: 400 });
 
-    const { data, error } = await supabase
+    const sb = sbFor(request);
+    const { data, error } = await sb
       .from("propiedades")
       .update(updates)
       .eq("id", id)
@@ -147,7 +157,8 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const { id } = await request.json();
-    const { error } = await supabase.from("propiedades").delete().eq("id", id);
+    const sb = sbFor(request);
+    const { error } = await sb.from("propiedades").delete().eq("id", id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ success: true });
   } catch {

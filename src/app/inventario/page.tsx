@@ -5,7 +5,7 @@ import {
   Home, Plus, Send, Copy, ExternalLink, Phone, CheckCircle2,
   Building2, MapPin, Bed, Bath, Car, Droplets, Zap, Wifi, Flame, Share2, Users,
 } from "lucide-react";
-import { TIPOS_INMUEBLE, ESTADOS_VENEZUELA } from "@/lib/constants";
+import { TIPOS_INMUEBLE, ESTADOS_VENEZUELA, MUNICIPIOS_POR_ESTADO, ZONAS_POR_MUNICIPIO, generarCodigoCartera } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
 import { generarCopyWhatsApp, generarCopyInstagram, generarCopyMarketplace } from "@/lib/utils";
 import { DEFAULT_BOT_TOKEN, DEFAULT_CHAT_ID } from "@/lib/constants";
@@ -20,6 +20,9 @@ interface Inmueble {
   titulo: string;
   tipo: string;
   estado: string;
+  codigo?: string;
+  municipio?: string;
+  zona?: string;
   ciudad: string;
   urbanizacion: string;
   precio_dueno: number;
@@ -46,7 +49,7 @@ export default function InventarioPage() {
 
   // Form state
   const [form, setForm] = useState({
-    titulo: "", tipo: "Apartamento", estado: "Carabobo", ciudad: "", urbanizacion: "",
+    titulo: "", tipo: "Apartamento", estado: "Carabobo", municipio: "Valencia", zona: "", ciudad: "", urbanizacion: "",
     precio_dueno: 35000, margen_pct: 8, habs: 3, banos: 2, puestos: 2, metros: 95,
     servicios: { pozo: true, planta: false, fibra: true, gas: true },
     descripcion: "", contacto_dueno: "", fotos: [] as string[],
@@ -55,6 +58,13 @@ export default function InventarioPage() {
   useEffect(() => {
     fetchInventario();
   }, []);
+
+  // Estado → municipio por defecto cuando arranca el form
+  useEffect(() => {
+    if (!form.municipio) {
+      setForm((f) => ({ ...f, municipio: (MUNICIPIOS_POR_ESTADO[f.estado] || ["Valencia"])[0] }));
+    }
+  }, [form.estado, form.municipio]);
 
   const fetchInventario = async () => {
     try {
@@ -77,16 +87,29 @@ export default function InventarioPage() {
     if (form.servicios.fibra) serviciosList.push("Fibra");
     if (form.servicios.gas) serviciosList.push("Gas Directo");
 
+    const municipio = form.municipio || form.ciudad || "Valencia";
+    const zona = form.zona || form.urbanizacion || municipio;
+
+    // Código único de cartera (COJ-101, CAR-102, ...)
+    const codigo = generarCodigoCartera(
+      form.estado,
+      inmuebles.filter((i) => i.estado === form.estado).length,
+      inmuebles.map((i) => i.codigo || "").filter(Boolean)
+    );
+
     try {
       await fetch("/api/inventario", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          codigo,
           titulo: form.titulo,
           tipo: form.tipo,
           estado: form.estado,
-          ciudad: form.ciudad,
-          urbanizacion: form.urbanizacion,
+          municipio,
+          ciudad: municipio,
+          zona,
+          urbanizacion: zona,
           precio_dueno: form.precio_dueno,
           precio_venta,
           habs: form.habs,
@@ -102,7 +125,7 @@ export default function InventarioPage() {
       });
       setShowForm(false);
       setForm({
-        titulo: "", tipo: "Apartamento", estado: "Carabobo", ciudad: "", urbanizacion: "",
+        titulo: "", tipo: "Apartamento", estado: "Carabobo", municipio: "", zona: "", ciudad: "", urbanizacion: "",
         precio_dueno: 35000, margen_pct: 8, habs: 3, banos: 2, puestos: 2, metros: 95,
         servicios: { pozo: true, planta: false, fibra: true, gas: true },
         descripcion: "", contacto_dueno: "", fotos: [],
@@ -216,18 +239,56 @@ export default function InventarioPage() {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-text-secondary mb-1 block">Estado</label>
-                  <select value={form.estado} onChange={(e) => setForm({ ...form, estado: e.target.value })} className="select-field">
+                  <select
+                    value={form.estado}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        estado: e.target.value,
+                        municipio: (MUNICIPIOS_POR_ESTADO[e.target.value] || ["Valencia"])[0],
+                        zona: "",
+                      })
+                    }
+                    className="select-field"
+                  >
                     {ESTADOS_VENEZUELA.map((e) => <option key={e} value={e}>{e}</option>)}
                   </select>
                 </div>
               </div>
               <div>
-                <label className="text-xs font-medium text-text-secondary mb-1 block">Ciudad</label>
-                <input type="text" value={form.ciudad} onChange={(e) => setForm({ ...form, ciudad: e.target.value })} placeholder="Valencia, San Diego..." className="input-field" />
+                <label className="text-xs font-medium text-text-secondary mb-1 block">Municipio</label>
+                <select
+                  value={form.municipio}
+                  onChange={(e) => setForm({ ...form, municipio: e.target.value, zona: "" })}
+                  className="select-field"
+                >
+                  {(MUNICIPIOS_POR_ESTADO[form.estado] || ["Valencia"]).map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
               </div>
               <div>
-                <label className="text-xs font-medium text-text-secondary mb-1 block">Urbanización</label>
-                <input type="text" value={form.urbanizacion} onChange={(e) => setForm({ ...form, urbanizacion: e.target.value })} placeholder="Las Chimeneas, Prebo..." className="input-field" />
+                <label className="text-xs font-medium text-text-secondary mb-1 block">Zona / Urbanización</label>
+                <input
+                  type="text"
+                  list="zonas-sugeridas"
+                  value={form.zona}
+                  onChange={(e) => setForm({ ...form, zona: e.target.value })}
+                  placeholder={`Ej. ${(ZONAS_POR_MUNICIPIO[form.municipio] || ["Las Chimeneas", "Prebo"])[0]}`}
+                  className="input-field"
+                />
+                <datalist id="zonas-sugeridas">
+                  {(ZONAS_POR_MUNICIPIO[form.municipio] || MUNICIPIOS_POR_ESTADO[form.estado] || []).map((z) => (
+                    <option key={z} value={z} />
+                  ))}
+                </datalist>
+                <p className="text-[10px] text-text-muted mt-1">
+                  Código de cartera generado: <span className="text-primary font-semibold">{generarCodigoCartera(
+                    form.estado,
+                    inmuebles.filter((i) => i.estado === form.estado).length,
+                    inmuebles.map((i) => i.codigo || "").filter(Boolean)
+                  )}</span>
+                </p>
               </div>
               <div>
                 <label className="text-xs font-medium text-text-secondary mb-1 block">Contacto Dueño</label>
@@ -366,6 +427,11 @@ export default function InventarioPage() {
                   <div className="flex items-center gap-2">
                     <span className={`badge ${badgeColor}`}>{inm.estatus}</span>
                     <span className="badge badge-primary">{inm.tipo}</span>
+                    {inm.codigo && (
+                      <span className="badge bg-primary/10 text-primary border border-primary/20 text-xs font-mono">
+                        #{inm.codigo}
+                      </span>
+                    )}
                     {inm.fotos_rutas && inm.fotos_rutas.split(",").filter(Boolean).length > 0 && (
                       <span className="badge bg-surface-elevated text-text-muted text-xs">
                         📷 {inm.fotos_rutas.split(",").filter(Boolean).length} fotos
@@ -378,7 +444,7 @@ export default function InventarioPage() {
                 <h3 className="text-lg font-semibold text-text-primary mb-1">{inm.titulo}</h3>
                 <p className="text-sm text-text-muted flex items-center gap-1 mb-3">
                   <MapPin className="w-3.5 h-3.5" />
-                  {inm.urbanizacion}, {inm.ciudad} ({inm.estado})
+                  {inm.zona || inm.urbanizacion}, {inm.municipio || inm.ciudad} ({inm.estado})
                 </p>
 
                 <div className="grid grid-cols-4 gap-3 mb-4">
@@ -452,7 +518,7 @@ export default function InventarioPage() {
                   <PDFGenerator inmueble={inm} />
                   <WhatsAppButton
                     phone={inm.contacto_dueno}
-                    property={{ tipo: inm.tipo, urbanizacion: inm.urbanizacion, ciudad: inm.ciudad, precio: inm.precio_venta }}
+                    property={{ tipo: inm.tipo, urbanizacion: inm.urbanizacion, ciudad: inm.ciudad, precio: inm.precio_venta, codigo: inm.codigo }}
                   />
                 </div>
 

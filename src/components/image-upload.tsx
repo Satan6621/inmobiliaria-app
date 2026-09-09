@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { Upload, X, Image as ImageIcon, Loader2, CheckCircle2, ArrowDown } from "lucide-react";
 import { comprimirImagen, formatearTamano, calcularAhorro } from "@/lib/image-compression";
+import { authFetchMultipart } from "@/lib/api";
 
 interface ImageUploadProps {
   onUpload: (urls: string[]) => void;
@@ -84,10 +85,7 @@ export function ImageUpload({ onUpload, existingImages = [], maxFiles = 10 }: Im
         const formData = new FormData();
         formData.append("file", comp.file);
 
-        const res = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
+        const res = await authFetchMultipart("/api/upload", formData);
 
         const data = await res.json();
         if (data.url) {

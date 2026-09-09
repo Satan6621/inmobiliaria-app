@@ -28,6 +28,64 @@ export const ESTADOS_VENEZUELA = [
   "Guárico", "Monagas", "Sucre", "Nueva Esparta", "Amazonas", "Delta Amacuro", "Vargas",
 ] as const;
 
+export const MUNICIPIOS_POR_ESTADO: Record<string, string[]> = {
+  Cojedes: ["San Carlos", "Tinaquillo", "Anzoátegui", "Girardot", "Tinaco", "Lima Blanco", "Ricaurte", "Rómulo Gallegos", "Ezequiel Zamora"],
+  Carabobo: ["Valencia", "Naguanagua", "San Diego", "Los Guayos", "Guacara", "Puerto Cabello", "San Joaquín", "Diego Ibarra", "Bejuma", "Miranda"],
+  "Distrito Capital": ["Libertador", "El Recreo", "Santa Rosalía", "Leoncio Martínez"],
+  Miranda: ["Sucre", "Baruta", "Chacao", "El Hatillo", "Los Salias", "Guaicaipuro", "Carrizal", "Plaza", "Zamora", "Independencia"],
+  Aragua: ["Girardot", "Mario Briceño Iragorry", "Santiago Mariño", "José Félix Ribas", "Sucre", "Zamora", "Francisco Linares Alcántara", "Libertador"],
+  Lara: ["Iribarren", "Palavecino", "Crespo", "Jiménez", "Morán", "Torres", "Urdaneta"],
+  Zulia: ["Maracaibo", "San Francisco", "La Cañada de Urdaneta", "Mara", "Guajira", "Cabimas", "Lagunillas", "Santa Rita", "Machiques de Perijá", "Colón"],
+  Anzoátegui: ["Simón Bolívar", "Diego Bautista Urbaneja", "Sotillo", "Guanta", "Anaco", "Simón Rodríguez", "Freites", "Bruzual", "Independencia"],
+  Bolívar: ["Caroní", "Heres", "Piar", "Roscio", "Sifontes", "Gran Sabana", "Cedeño"],
+  Falcón: ["Miranda", "Carirubana", "Colina", "Los Taques", "Silva", "Mauroa", "Zamora", "Acosta", "Falcón"],
+  Mérida: ["Libertador", "Alberto Adriani", "Campo Elías", "Santos Marquina", "Tovar", "Zea", "Rangel"],
+  Táchira: ["San Cristóbal", "Bolívar", "Cárdenas", "Ureña", "Junín", "García de Hevia", "Guásimos", "Lobatera", "Fernández Feo"],
+  Trujillo: ["Trujillo", "Valera", "Boconó", "Betijoque", "Escuque", "Motatán", "Pampán", "Carache"],
+  Yaracuy: ["San Felipe", "Independencia", "Cocorote", "Bruzual", "Peña", "Bolívar", "Nirgua", "Urachiche"],
+  Guárico: ["Juan Germán Roscio", "Miranda", "Leonardo Infante", "Ortiz", "Zaraza", "Camaguán", "Chaguaramas", "Julián Mellado", "Monagas"],
+  Monagas: ["Maturín", "Ezequiel Zamora", "Caripe", "Cedeño", "Uracoa", "Libertador"],
+  Sucre: ["Sucre", "Bermúdez", "Montes", "Valdez", "Arizmendi", "Andrés Eloy Blanco"],
+  "Nueva Esparta": ["Mariño", "Arismendi", "García", "Tubores", "Díaz", "Macanao", "Antolín del Campo"],
+  Amazonas: ["Atures", "Atabapo", "Manapiare", "Alto Orinoco", "Río Negro"],
+  "Delta Amacuro": ["Tucupita", "Pedernales", "Antonio Díaz", "Casacoima"],
+  Vargas: ["Vargas"],
+};
+
+export const ZONAS_POR_MUNICIPIO: Record<string, string[]> = {
+  "San Carlos": ["Centro de San Carlos", "Cantaclaro", "La Campiña", "Urbanización El Carmen", "Urbanización Limoncito", "La Aurora", "San Rafael", "El Maracay", "La Guacamaya", "El Bosque", "Caja de Agua", "Montes de Oca"],
+  Tinaquillo: ["Centro de Tinaquillo", "La Campiña", "Villa Italia", "Los Samanes", "Urbanización Miranda", "La Macandona", "Las Flores", "Brisas del Sur", "San Luis"],
+  Anzoátegui: ["Cojedes (centro)", "Chupadero", "Santa Rosa", "Camoruco", "El Guárico"],
+  Girardot: ["El Baúl", "San José de Mapuey", "El Chorro"],
+  Tinaco: ["Tinaco centro", "El Amparo", "La Palma", "Lechozas"],
+  "Lima Blanco": ["Macapo", "La Sierra", "Las Vegas"],
+  Ricaurte: ["Libertad", "La Unión", "El Laurel", "San José de la Montaña"],
+  "Rómulo Gallegos": ["Las Vegas", "La Pascua", "El Jobo"],
+  "Ezequiel Zamora": ["San Carlos de Mapuey", "El Limón", "San José"],
+};
+
+/** Código de cartera por estado: COJ-101, CAR-102, MIR-103... */
+export function generarCodigoCartera(estado: string, contador: number, listaExistente: string[] = []): string {
+  const abrev: Record<string, string> = {
+    Cojedes: "COJ", Carabobo: "CAR", "Distrito Capital": "CCS", Miranda: "MIR",
+    Aragua: "ARG", Lara: "LAR", Zulia: "ZUL", Anzoátegui: "ANZ", Bolívar: "BOL",
+    Falcón: "FAL", Mérida: "MER", Táchira: "TAC", Trujillo: "TRU", Yaracuy: "YAR",
+    Guárico: "GUA", Monagas: "MON", Sucre: "SUC", "Nueva Esparta": "NVA",
+    Amazonas: "AMA", "Delta Amacuro": "DEL", Vargas: "VAR",
+  };
+  const prefijo = abrev[estado] || "VEN";
+
+  const usados = new Set(
+    listaExistente
+      .map((c) => c?.match(/-(\d+)$/))
+      .filter(Boolean)
+      .map((m: any) => Number(m[1]))
+  );
+  let numero = 100 + (contador % 900);
+  while (usados.has(numero)) numero += 1;
+  return `${prefijo}-${numero}`;
+}
+
 export const TERMINOS_INMOBILIARIOS = [
   "apartamento", "apto", "casa", "townhouse", "town house", "th",
   "terreno", "galpon", "galpón", "quinta", "penthouse", "pent house",

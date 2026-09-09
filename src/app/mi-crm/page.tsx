@@ -10,6 +10,8 @@ import { ImageUpload } from "@/components/image-upload";
 import { formatCurrency } from "@/lib/utils";
 import { ESTADOS_VENEZUELA } from "@/lib/constants";
 import { useRealtimeTable } from "@/lib/realtime";
+import { authFetch } from "@/lib/api";
+import { getUserId } from "@/lib/auth";
 
 interface PropiedadAgent {
   id: string;
@@ -205,17 +207,18 @@ export default function MicroCrmPage() {
         };
         if (form.imagenes.length > 0) body.imagenes = form.imagenes;
 
+        const userId = await getUserId();
+        if (userId) body.user_id = userId;
+
         if (editingId) {
           body.id = editingId;
-          await fetch("/api/propiedades", {
+          await authFetch("/api/propiedades", {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
           });
         } else {
-          await fetch("/api/propiedades", {
+          await authFetch("/api/propiedades", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
           });
         }
@@ -247,9 +250,8 @@ export default function MicroCrmPage() {
     const nuevoEstado = p.estado === "Pausado" ? "Disponible" : "Pausado";
     setPropiedades(propiedades.map((x) => (x.id === id ? { ...x, estado: nuevoEstado } : x)));
     if (online) {
-      await fetch("/api/propiedades", {
+      await authFetch("/api/propiedades", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, estatus: nuevoEstado === "Pausado" ? "PAUSADO" : "DISPONIBLE" }),
       });
     }
@@ -258,9 +260,8 @@ export default function MicroCrmPage() {
   const cambiarEstado = async (id: string, estado: string) => {
     setPropiedades(propiedades.map((p) => (p.id === id ? { ...p, estado } : p)));
     if (online) {
-      await fetch("/api/propiedades", {
+      await authFetch("/api/propiedades", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, estatus: estado.toUpperCase() }),
       });
     }
@@ -270,9 +271,8 @@ export default function MicroCrmPage() {
     if (!confirm("¿Eliminar esta propiedad?")) return;
     setPropiedades(propiedades.filter((p) => p.id !== id));
     if (online) {
-      await fetch("/api/propiedades", {
+      await authFetch("/api/propiedades", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
       });
     }

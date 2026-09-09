@@ -10,6 +10,8 @@ import { ZONAS_DISPONIBLES } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
 import { AISearch } from "@/components/ai-search";
 import { usePropiedadesFeed, matchBusquedaYNotificar, pedirPermisoNotificaciones } from "@/lib/realtime";
+import { authFetch } from "@/lib/api";
+import { getUserId } from "@/lib/auth";
 import { Wifi, WifiOff } from "lucide-react";
 
 interface ProspectoRastreo {
@@ -211,16 +213,18 @@ export default function RastreadorPage() {
 
     // Guardar en Supabase para que otros dispositivos/agentes la vean
     try {
-      await fetch("/api/alertas", {
+      const body: any = {
+        titulo: nueva.nombre,
+        nombre_agente: "Agente",
+        precio_min: precioMin,
+        precio_max: precioMax,
+        tipo_inmueble: tipoInmueble === "Todos" ? null : tipoInmueble,
+      };
+      const userId = await getUserId();
+      if (userId) body.user_id = userId;
+      await authFetch("/api/alertas", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          titulo: nueva.nombre,
-          nombre_agente: "Agente",
-          precio_min: precioMin,
-          precio_max: precioMax,
-          tipo_inmueble: tipoInmueble === "Todos" ? null : tipoInmueble,
-        }),
+        body: JSON.stringify(body),
       });
     } catch {
       // offline: permanece en localStorage

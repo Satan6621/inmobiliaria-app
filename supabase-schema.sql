@@ -137,6 +137,13 @@ create table if not exists inventario (
     updated_at timestamptz default now()
 );
 
+-- Columnas de ubicación detallada y código de cartera (idempotente)
+alter table inventario add column if not exists codigo text;
+alter table inventario add column if not exists municipio text;
+alter table inventario add column if not exists zona text;
+create index if not exists inventario_codigo_idx on inventario (codigo);
+create index if not exists inventario_estado_idx on inventario (estado);
+
 -- ============================================================
 -- MULTIMEDIA OPTIMIZADA
 -- ============================================================
@@ -212,10 +219,83 @@ create table if not exists favoritos (
 );
 
 -- ============================================================
--- RLS: habilitar y permitir acceso anónimo (misma política existente)
+-- RLS: Seguridad por fila
+-- - Propiedades: CUALQUIERA lee, solo el CREADOR edita/elimina
+-- - Alertas/Favoritos: CUALQUIERA lee, solo el CREADOR gestiona
+-- - Resto de tablas: política abierta (compatibilidad)
 -- ============================================================
+
+-- 1. PROPEDADES: lectura pública + dueño gestiona
+alter table propiedades enable row level security;
+
+drop policy if exists "allow_all_propiedades" on propiedades;
+drop policy if exists "propiedades_select_public" on propiedades;
+drop policy if exists "propiedades_insert_own" on propiedades;
+drop policy if exists "propiedades_update_own" on propiedades;
+drop policy if exists "propiedades_delete_own" on propiedades;
+
+create policy "propiedades_select_public" on propiedades
+    for select using (true);
+
+create policy "propiedades_insert_own" on propiedades
+    for insert to anon, authenticated
+    with check (auth.uid() = user_id or user_id is null);
+
+create policy "propiedades_update_own" on propiedades
+    for update to anon, authenticated
+    using (auth.uid() = user_id)
+    with check (auth.uid() = user_id);
+
+create policy "propiedades_delete_own" on propiedades
+    for delete to anon, authenticated
+    using (auth.uid() = user_id);
+
+-- 2. ALERTAS DE BÚSQUEDA: lectura pública + dueño gestiona
+alter table alertas_busqueda enable row level security;
+
+drop policy if exists "allow_all_alertas_busqueda" on alertas_busqueda;
+drop policy if exists "alertas_select_public" on alertas_busqueda;
+drop policy if exists "alertas_insert_own" on alertas_busqueda;
+drop policy if exists "alertas_update_own" on alertas_busqueda;
+drop policy if exists "alertas_delete_own" on alertas_busqueda;
+
+create policy "alertas_select_public" on alertas_busqueda
+    for select using (true);
+
+create policy "alertas_insert_own" on alertas_busqueda
+    for insert to anon, authenticated
+    with check (auth.uid() = user_id or user_id is null);
+
+create policy "alertas_update_own" on alertas_busqueda
+    for update to anon, authenticated
+    using (auth.uid() = user_id);
+
+create policy "alertas_delete_own" on alertas_busqueda
+    for delete to anon, authenticated
+    using (auth.uid() = user_id);
+
+-- 3. FAVORITOS: dueño gestiona
+alter table favoritos enable row level security;
+
+drop policy if exists "allow_all_favoritos" on favoritos;
+drop policy if exists "favoritos_select_public" on favoritos;
+drop policy if exists "favoritos_insert_own" on favoritos;
+drop policy if exists "favoritos_delete_own" on favoritos;
+
+create policy "favoritos_select_public" on favoritos
+    for select using (true);
+
+create policy "favoritos_insert_own" on favoritos
+    for insert to anon, authenticated
+    with check (auth.uid() = user_id or user_id is null);
+
+create policy "favoritos_delete_own" on favoritos
+    for delete to anon, authenticated
+    using (auth.uid() = user_id);
+
+-- 4. Tablas auxiliares / existentes: política abierta (compatibilidad)
 do $$ declare tbl text; begin
-    foreach tbl in array array['propiedades','compradores','inventario','propiedades_imagenes','alertas_busqueda','historial_precios','agentes','favoritos','estados','municipios','zonas_urbanizaciones'] loop
+    foreach tbl in array array['compradores','inventario','propiedades_imagenes','historial_precios','agentes','estados','municipios','zonas_urbanizaciones'] loop
         execute format('alter table %I enable row level security;', tbl);
         execute format('drop policy if exists "allow_all_%I" on %I;', tbl, tbl);
         execute format('create policy "allow_all_%I" on %I for all using (true) with check (true);', tbl, tbl);
@@ -393,3 +473,37 @@ exception when duplicate_object then null; end $$;
 do $$ begin
     alter publication supabase_realtime add table historial_precios;
 exception when duplicate_object then null; end $$;
+
+-- ============================================================
+-- STORAGE: bucket de fotos con lectura pública
+-- ============================================================
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+    'inmuebles-fotos',
+    'inmuebles-fotos',
+    true,
+    5242880, -- 5 MB máx
+    array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+on conflict (id) do update set public = true;
+
+-- Lectura pública de las fotos
+drop policy if exists "inmuebles-fotos read public" on storage.objects;
+create policy "inmuebles-fotos read public" on storage.objects
+    for select using (bucket_id = 'inmuebles-fotos');
+
+-- Subida permitida (la app procesa a WebP en Node antes de subir)
+drop policy if exists "inmuebles-fotos insert" on storage.objects;
+create policy "inmuebles-fotos insert" on storage.objects
+    for insert to anon, authenticated
+    with check (bucket_id = 'inmuebles-fotos');
+
+drop policy if exists "inmuebles-fotos update" on storage.objects;
+create policy "inmuebles-fotos update" on storage.objects
+    for update to anon, authenticated
+    using (bucket_id = 'inmuebles-fotos');
+
+drop policy if exists "inmuebles-fotos delete" on storage.objects;
+create policy "inmuebles-fotos delete" on storage.objects
+    for delete to anon, authenticated
+    using (bucket_id = 'inmuebles-fotos');
