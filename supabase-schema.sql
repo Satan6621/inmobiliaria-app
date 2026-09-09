@@ -112,6 +112,34 @@ create table if not exists compradores (
 );
 
 -- ============================================================
+-- TABLA DE PROSPECTOS (scraping + CRM)
+-- ============================================================
+create table if not exists prospectos (
+    id bigint generated always as identity primary key,
+    fecha text,
+    zona text,
+    rol text,
+    calificado text default 'NO',
+    precio_usd numeric(12,2) default 0,
+    metros numeric(8,2) default 0,
+    precio_m2 numeric(12,2) default 0,
+    urgencia_score int default 0,
+    servicios text default 'Estándar',
+    telefono text default 'Ver enlace',
+    whatsapp_link text,
+    titulo text,
+    detalle text,
+    enlace text,
+    estado_gestion text default 'NUEVO',
+    notas text default '',
+    imagenes_urls jsonb default '[]'::jsonb,
+    notas_imagenes text default '',
+    created_at timestamptz default now(),
+    updated_at timestamptz default now()
+);
+create index if not exists prospectos_estado_gestion_idx on prospectos (estado_gestion);
+
+-- ============================================================
 -- TABLA DE INVENTARIO PROPIETARIOS (si no existe)
 -- ============================================================
 create table if not exists inventario (
@@ -295,7 +323,7 @@ create policy "favoritos_delete_own" on favoritos
 
 -- 4. Tablas auxiliares / existentes: política abierta (compatibilidad)
 do $$ declare tbl text; begin
-    foreach tbl in array array['compradores','inventario','propiedades_imagenes','historial_precios','agentes','estados','municipios','zonas_urbanizaciones'] loop
+    foreach tbl in array array['prospectos','compradores','inventario','propiedades_imagenes','historial_precios','agentes','estados','municipios','zonas_urbanizaciones'] loop
         execute format('alter table %I enable row level security;', tbl);
         execute format('drop policy if exists "allow_all_%I" on %I;', tbl, tbl);
         execute format('create policy "allow_all_%I" on %I for all using (true) with check (true);', tbl, tbl);
@@ -314,13 +342,16 @@ $$ language plpgsql;
 do $$ begin
     drop trigger if exists trg_propiedades_updated on propiedades;
     drop trigger if exists trg_compradores_updated on compradores;
-    drop trigger if exists trg_inventario_updated on inventario;
-    drop trigger if exists trg_alertas_updated on alertas_busqueda;
+drop trigger if exists trg_prospectos_updated on prospectos;
+drop trigger if exists trg_inventario_updated on inventario;
+drop trigger if exists trg_alertas_updated on alertas_busqueda;
 exception when others then null; end $$;
 
 create trigger trg_propiedades_updated before update on propiedades
     for each row execute function update_timestamp();
 create trigger trg_compradores_updated before update on compradores
+    for each row execute function update_timestamp();
+create trigger trg_prospectos_updated before update on prospectos
     for each row execute function update_timestamp();
 create trigger trg_inventario_updated before update on inventario
     for each row execute function update_timestamp();
@@ -469,6 +500,9 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 do $$ begin
     alter publication supabase_realtime add table compradores;
+exception when duplicate_object then null; end $$;
+do $$ begin
+    alter publication supabase_realtime add table prospectos;
 exception when duplicate_object then null; end $$;
 do $$ begin
     alter publication supabase_realtime add table historial_precios;
