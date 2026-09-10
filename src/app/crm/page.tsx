@@ -545,7 +545,7 @@ export default function CRMPage() {
                     <td>
                       <div className="flex items-center gap-2">
                         <span className="text-xs">{s.telefono}</span>
-                        <a href={s.whatsapp_link || `https://wa.me/584141234567`} target="_blank" rel="noopener noreferrer"
+                        <a href={s.whatsapp_link || `https://wa.me/584129519234`} target="_blank" rel="noopener noreferrer"
                           className="p-1.5 rounded-lg hover:bg-surface-hover text-success">
                           <Phone className="w-3.5 h-3.5" />
                         </a>

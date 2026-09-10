@@ -124,7 +124,7 @@ export const ESTADOS_SOLICITUD = ["NUEVA", "CONTACTADA", "PROMOVIDA", "DESCARTAD
 export const TIPOS_INMUEBLE = ["Apartamento", "Casa", "Townhouse", "Terreno", "Galpón", "Oficina/Local"] as const;
 
 /** Número de WhatsApp del asesor: 58 + 41234567 (sin el 0 inicial) */
-export const WHATSAPP_COJEDES = "584141234567";
+export const WHATSAPP_COJEDES = "584129519234";
 
 /** Convierte un teléfono venezolano suelto a un link wa.me */
 export function buildWhatsAppLink(telefono: string | null | undefined, mensaje?: string): string {

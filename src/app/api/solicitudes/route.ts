@@ -192,6 +192,30 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
+    // Llamadas 100% anónimas (sin sesión): RLS impide devolver la fila.
+    // Insertamos igual sin devolver datos y omitimos el matching.
+    if (error && error.code === "42501") {
+      const { error: e2 } = await sb.from("solicitudes").insert({
+        tipo,
+        nombre,
+        telefono,
+        whatsapp_link: buildWhatsAppLink(telefono, mensaje),
+        tipo_inmueble: body.tipo_inmueble || "Apartamento",
+        precio: body.precio || null,
+        presupuesto_min: body.presupuesto_min || null,
+        presupuesto_max: body.presupuesto_max || null,
+        estado: body.estado || "Cojedes",
+        zona: body.zona || "",
+        habitaciones: body.habitaciones || 0,
+        banos: body.banos || 0,
+        metros: body.metros || null,
+        descripcion: body.descripcion || "",
+        fuente: body.fuente || "Sitio público",
+      });
+      if (e2) return NextResponse.json({ error: e2.message }, { status: 500 });
+      return NextResponse.json({ success: true, whatsapp_link: buildWhatsAppLink(telefono) });
+    }
+
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     // Matcher automático

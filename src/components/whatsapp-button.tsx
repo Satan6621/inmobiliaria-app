@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { MessageCircle, X } from "lucide-react";
 
 // Número de WhatsApp del asesor de Cojedes (configurable)
-const WHATSAPP_COJEDES = "584141234567";
+const WHATSAPP_COJEDES = "584129519234";
 
 interface WhatsAppButtonProps {
   phone?: string;

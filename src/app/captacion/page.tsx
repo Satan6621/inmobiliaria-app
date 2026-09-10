@@ -70,7 +70,7 @@ export default function CaptacionPage() {
             para darte respuesta. ¿Prefieres hablar ya con nosotros?
           </p>
           <a
-            href={exito.whatsapp_link || "https://wa.me/584141234567"}
+            href={exito.whatsapp_link || "https://wa.me/584129519234"}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-whatsapp inline-flex items-center gap-2 text-base px-8 py-3"
