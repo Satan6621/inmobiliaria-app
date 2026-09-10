@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseWithToken } from "@/lib/supabase";
 import { buildWhatsAppLink, WHATSAPP_COJEDES } from "@/lib/constants";
+import { notificarLeadTelegram } from "@/lib/telegram";
 
 function sbFor(request: NextRequest) {
   const auth = request.headers.get("authorization");
@@ -213,10 +214,31 @@ export async function POST(request: NextRequest) {
         fuente: body.fuente || "Sitio público",
       });
       if (e2) return NextResponse.json({ error: e2.message }, { status: 500 });
+      await notificarLeadTelegram({
+        tipo,
+        nombre,
+        telefono,
+        estado: body.estado || "Cojedes",
+        zona: body.zona || "",
+        tipoInmueble: body.tipo_inmueble || "Apartamento",
+        precio: body.precio || body.presupuesto_max || null,
+        descripcion: body.descripcion || "",
+      });
       return NextResponse.json({ success: true, whatsapp_link: buildWhatsAppLink(telefono) });
     }
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    await notificarLeadTelegram({
+      tipo,
+      nombre,
+      telefono,
+      estado: data?.estado || body.estado || "Cojedes",
+      zona: data?.zona || body.zona || "",
+      tipoInmueble: data?.tipo_inmueble || body.tipo_inmueble || "Apartamento",
+      precio: data?.precio || data?.presupuesto_max || null,
+      descripcion: data?.descripcion || body.descripcion || "",
+    });
 
     // Matcher automático
     let coincidencias = 0;
@@ -305,6 +327,17 @@ export async function PATCH(request: NextRequest) {
         .single();
 
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+      await notificarLeadTelegram({
+        tipo: "promovida",
+        nombre: solicitud.nombre,
+        telefono: solicitud.telefono,
+        estado: solicitud.estado,
+        zona: solicitud.zona,
+        tipoInmueble: solicitud.tipo_inmueble,
+        precio: solicitud.precio,
+        extra: `Solicitud promovida a propiedad ${codigo}`,
+      });
 
       await sb
         .from("solicitudes")

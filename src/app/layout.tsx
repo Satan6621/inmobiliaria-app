@@ -29,6 +29,11 @@ export default function RootLayout({
           <Sidebar />
           <main className="ml-[260px] min-h-screen">
             <div className="p-8">{children}</div>
+            <footer className="p-6 border-t border-border-subtle text-center text-xs text-text-muted space-x-4">
+              <span>© {new Date().getFullYear()} Venezuela Inmobiliaria.</span>
+              <a href="/politicas-de-seguridad" className="hover:text-text-primary transition-colors">Política de Seguridad</a>
+              <a href="/terminos-de-servicios" className="hover:text-text-primary transition-colors">Términos de Servicio</a>
+            </footer>
           </main>
           <WhatsAppFloat />
         </ThemeProvider>

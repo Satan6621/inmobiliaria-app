@@ -9,6 +9,7 @@ import {
 } from "@/lib/catalogo";
 import { formatCurrency } from "@/lib/utils";
 import { CompartirPropiedad } from "@/components/compartir-propiedad";
+import { PropertyMap } from "@/components/property-map";
 
 export const dynamic = "force-dynamic";
 
@@ -97,6 +98,28 @@ export default async function DetallePropiedadPage({
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Mapa */}
+          <div className="glass-card overflow-hidden">
+            <div className="px-6 pt-5 pb-2 flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-primary" />
+              <h2 className="font-semibold font-[family-name:var(--font-display)]">Ubicación</h2>
+            </div>
+            <p className="px-6 pb-3 text-sm text-text-muted">{ubicacionDe(p)}</p>
+            <PropertyMap
+              height="320px"
+              properties={[
+                {
+                  id: p.id,
+                  titulo: p.titulo || `Propiedad ${p.codigo || ""}`,
+                  direccion: p.direccion_completa || p.descripcion || ubicacionDe(p),
+                  ciudad: p.estado?.nombre || "",
+                  precio: p.precio || 0,
+                  tipo: p.tipo_inmueble,
+                },
+              ]}
+            />
           </div>
 
           {/* Descripción */}

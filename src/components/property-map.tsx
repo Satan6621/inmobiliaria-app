@@ -5,7 +5,7 @@ import { MapPin, Loader2 } from "lucide-react";
 
 interface PropertyMapProps {
   properties: Array<{
-    id: number;
+    id: number | string;
     titulo: string;
     direccion: string;
     ciudad: string;
