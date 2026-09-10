@@ -25,83 +25,83 @@ async function Card({ p }: { p: PropiedadPublica }) {
   const img = imagenPrincipal(p);
   const wa = whatsappPropiedad(p);
   return (
-    <Link
-      href={`/propiedades/${p.id}`}
-      className="glass-card group overflow-hidden hover:shadow-xl hover:border-primary/30 transition-all duration-300 animate-slide-up"
-    >
-      <div className="relative aspect-[4/3] bg-surface-elevated overflow-hidden">
-        {img ? (
-          <img
-            src={img}
-            alt={p.titulo || "Propiedad"}
-            loading="lazy"
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-text-muted">
-            <ImageOff className="w-10 h-10" />
+    <div className="glass-card group overflow-hidden hover:shadow-xl hover:border-primary/30 transition-all duration-300 animate-slide-up flex flex-col">
+      <Link href={`/propiedades/${p.id}`}>
+        <div className="relative aspect-[4/3] bg-surface-elevated overflow-hidden">
+          {img ? (
+            <img
+              src={img}
+              alt={p.titulo || "Propiedad"}
+              loading="lazy"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-text-muted">
+              <ImageOff className="w-10 h-10" />
+            </div>
+          )}
+          <div className="absolute top-3 left-3 flex gap-1.5 flex-wrap">
+            <span className="badge bg-primary text-white shadow-lg">{p.tipo_inmueble}</span>
+            {p.esta_verificado && (
+              <span className="badge badge-success shadow-lg flex items-center gap-1">
+                <BadgeCheck className="w-3 h-3" /> Verificada
+              </span>
+            )}
           </div>
-        )}
-        <div className="absolute top-3 left-3 flex gap-1.5 flex-wrap">
-          <span className="badge bg-primary text-white shadow-lg">{p.tipo_inmueble}</span>
-          {p.esta_verificado && (
-            <span className="badge badge-success shadow-lg flex items-center gap-1">
-              <BadgeCheck className="w-3 h-3" /> Verificada
+          {p.codigo && (
+            <span className="absolute top-3 right-3 badge bg-black/60 text-white backdrop-blur-sm shadow-lg font-mono text-xs">
+              #{p.codigo}
             </span>
           )}
         </div>
-        {p.codigo && (
-          <span className="absolute top-3 right-3 badge bg-black/60 text-white backdrop-blur-sm shadow-lg font-mono text-xs">
-            #{p.codigo}
-          </span>
-        )}
-      </div>
 
-      <div className="p-5">
-        <div className="flex items-start justify-between mb-2 gap-2">
-          <h3 className="font-semibold text-text-primary text-base leading-snug line-clamp-1 group-hover:text-primary transition-colors">
-            {p.titulo || "Propiedad disponible"}
-          </h3>
-          <span className="text-lg font-bold text-primary whitespace-nowrap">
-            {formatCurrency(p.precio)}
-          </span>
-        </div>
-
-        <p className="text-xs text-text-muted flex items-center gap-1 mb-3">
-          <MapPin className="w-3 h-3 flex-shrink-0" />
-          <span className="truncate">{ubicacionDe(p)}</span>
-        </p>
-
-        <div className="flex items-center gap-4 text-xs text-text-secondary mb-3">
-          {p.habitaciones > 0 && (
-            <span className="flex items-center gap-1"><Bed className="w-3.5 h-3.5" /> {p.habitaciones} Hab.</span>
-          )}
-          {p.banos > 0 && (
-            <span className="flex items-center gap-1"><Bath className="w-3.5 h-3.5" /> {p.banos} Baños</span>
-          )}
-          {p.metros_cuadrados > 0 && (
-            <span className="flex items-center gap-1"><Ruler className="w-3.5 h-3.5" /> {p.metros_cuadrados}m²</span>
-          )}
-        </div>
-
-        {p.descripcion && (
-          <p className="text-xs text-text-muted line-clamp-2 mb-3">{p.descripcion}</p>
-        )}
-
-        {serviciosDe(p).length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-4">
-            {serviciosDe(p).slice(0, 3).map((s, i) => (
-              <span key={i} className="badge badge-info text-[11px]">{s}</span>
-            ))}
+        <div className="p-5">
+          <div className="flex items-start justify-between mb-2 gap-2">
+            <h3 className="font-semibold text-text-primary text-base leading-snug line-clamp-1 group-hover:text-primary transition-colors">
+              {p.titulo || "Propiedad disponible"}
+            </h3>
+            <span className="text-lg font-bold text-primary whitespace-nowrap">
+              {formatCurrency(p.precio)}
+            </span>
           </div>
-        )}
 
+          <p className="text-xs text-text-muted flex items-center gap-1 mb-3">
+            <MapPin className="w-3 h-3 flex-shrink-0" />
+            <span className="truncate">{ubicacionDe(p)}</span>
+          </p>
+
+          <div className="flex items-center gap-4 text-xs text-text-secondary mb-3">
+            {p.habitaciones > 0 && (
+              <span className="flex items-center gap-1"><Bed className="w-3.5 h-3.5" /> {p.habitaciones} Hab.</span>
+            )}
+            {p.banos > 0 && (
+              <span className="flex items-center gap-1"><Bath className="w-3.5 h-3.5" /> {p.banos} Baños</span>
+            )}
+            {p.metros_cuadrados > 0 && (
+              <span className="flex items-center gap-1"><Ruler className="w-3.5 h-3.5" /> {p.metros_cuadrados}m²</span>
+            )}
+          </div>
+
+          {p.descripcion && (
+            <p className="text-xs text-text-muted line-clamp-2 mb-3">{p.descripcion}</p>
+          )}
+
+          {serviciosDe(p).length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-4">
+              {serviciosDe(p).slice(0, 3).map((s, i) => (
+                <span key={i} className="badge badge-info text-[11px]">{s}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      </Link>
+
+      <div className="px-5 pb-5 mt-auto">
         <div className="flex items-center gap-2 pt-3 border-t border-border-subtle">
           <a
             href={wa}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
             className="btn-whatsapp flex-1 flex items-center justify-center gap-1.5 text-sm py-2"
           >
             WhatsApp
@@ -114,7 +114,7 @@ async function Card({ p }: { p: PropiedadPublica }) {
           </Link>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
 

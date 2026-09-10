@@ -6,7 +6,8 @@ import { Copy, Check, Share2 } from "lucide-react";
 export function CompartirPropiedad({ url, titulo }: { url?: string; titulo?: string }) {
   const [copiado, setCopiado] = useState(false);
 
-  const link = () => url || window.location.href;
+  const current = () => (typeof window !== "undefined" ? window.location.href : url || "");
+  const link = () => url || current();
 
   const copiar = async () => {
     try {

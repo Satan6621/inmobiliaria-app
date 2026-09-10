@@ -118,5 +118,5 @@ export function whatsappPropiedad(p: PropiedadPublica): string {
   const mensaje = `Hola, me interesa ${p.titulo || `la propiedad ${p.codigo || ""}`}` +
     `${p.codigo ? ` (#${p.codigo})` : ""}` +
     `${p.precio ? ` a $${p.precio.toLocaleString("es-VE")}` : ""}. ¿Sigue disponible?`;
-  return buildWhatsAppLink(p.telefono_agente || WHATSAPP_COJEDES, mensaje);
+  return buildWhatsAppLink(WHATSAPP_COJEDES, mensaje);
 }
