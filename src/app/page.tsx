@@ -110,6 +110,9 @@ export default function HomePage() {
             </div>
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
+            <a href="/propiedades" className="btn-secondary flex items-center gap-2">
+              <Home className="w-4 h-4" /> Catálogo de propiedades
+            </a>
             <button onClick={copiarLink}
               className="btn-secondary flex items-center gap-2">
               {copiado ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
