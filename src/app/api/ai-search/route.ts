@@ -11,6 +11,9 @@ const VENEZUELA_DB = {
   Barcelona: { state: "Anzoátegui", zones: ["Nueva Barcelona", "San Cristóbal", "El Libertador", "Peñalver"], avgPrice: 27000 },
   "Santa Teresa": { state: "Aragua", zones: ["Alto Paraíso", "La Florida", "San Antonio"], avgPrice: 45000 },
   "La Victoria": { state: "Aragua", zones: ["Centro", "Ocumare", "Santa Cruz"], avgPrice: 22000 },
+  Tinaquillo: { state: "Cojedes", zones: ["Centro de Tinaquillo", "La Campiña", "Villa Italia", "Los Samanes", "Urbanización Miranda", "La Macandona", "Brisas del Sur", "Las Flores", "San Luis"], avgPrice: 20000 },
+  "San Carlos": { state: "Cojedes", zones: ["Centro de San Carlos", "Cantaclaro", "La Campiña", "Urbanización El Carmen", "Urbanización Limoncito", "La Aurora", "San Rafael", "El Maracay", "La Guacamaya"], avgPrice: 22000 },
+  Tinaco: { state: "Cojedes", zones: ["Tinaco centro", "El Amparo", "La Palma", "Lechozas"], avgPrice: 18000 },
 };
 
 const TIPOS = {
@@ -89,8 +92,7 @@ function parseSearchQuery(query: string) {
     }
   }
   if (!result.city) {
-    const cities = Object.keys(VENEZUELA_DB);
-    result.city = cities[Math.floor(Math.random() * cities.length)];
+    result.city = (q.includes("cojedes") || q.includes("san carlos")) ? "San Carlos" : "Tinaquillo";
   }
 
   // Detect bedrooms
