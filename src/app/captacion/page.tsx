@@ -6,6 +6,7 @@ import {
   ArrowRight, ShieldCheck, Clock3,
 } from "lucide-react";
 import { TIPOS_INMUEBLE, ESTADOS_VENEZUELA } from "@/lib/constants";
+import { authFetch } from "@/lib/api";
 
 type Modo = "vender" | "comprar";
 
@@ -39,7 +40,7 @@ export default function CaptacionPage() {
     setEnviando(true);
     setError("");
     try {
-      const res = await fetch("/api/solicitudes", {
+      const res = await authFetch("/api/solicitudes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, tipo: modo }),
