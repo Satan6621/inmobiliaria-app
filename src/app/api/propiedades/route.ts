@@ -32,12 +32,15 @@ export async function GET(request: NextRequest) {
   const soloDisponibles = searchParams.get("disponibles") === "true";
 
   const sb = sbFor(request);
-  let query = sb.from("propiedades").select("*").order("created_at", { ascending: false });
+  let query = sb
+    .from("propiedades")
+    .select("*, estados(nombre), municipios(nombre), propiedades_imagenes(url_imagen, es_principal)")
+    .order("created_at", { ascending: false });
 
   if (tipo && tipo !== "Todos") query = query.eq("tipo_inmueble", tipo);
   if (soloDisponibles) query = query.not("estatus", "in", '(PAUSADO,VENDIDO)');
 
-  const { data, error } = await query;
+  const { data: rows, error } = await query;
 
   if (error) {
     if (error.code === "42P01") {
@@ -45,7 +48,15 @@ export async function GET(request: NextRequest) {
     }
     return NextResponse.json({ error: error.message, propiedades: [], offline: true }, { status: 200 });
   }
-  return NextResponse.json({ propiedades: data || [] });
+
+  const propiedades = (rows || []).map((p: any) => ({
+    ...p,
+    estado_nombre: p.estados?.nombre ?? null,
+    municipio_nombre: p.municipios?.nombre ?? null,
+    direccion_completa: p.direccion_completa || p.descripcion || "",
+    imagenes_urls: (p.propiedades_imagenes || []).map((i: any) => i.url_imagen),
+  }));
+  return NextResponse.json({ propiedades });
 }
 
 function generarCodigoEstado(nombreEstado: string, contador: number): string {
@@ -83,10 +94,17 @@ export async function POST(request: NextRequest) {
 
     const codigo = generarCodigoEstado(estado, count || 0);
 
+    // Asignar propietario (user_id) si la sesión anónima/autenticada lo permite
+    let userId = body.user_id || null;
+    if (!userId) {
+      const { data: userData } = await sb.auth.getUser();
+      userId = userData?.user?.id ?? null;
+    }
+
     const { data, error } = await sb
       .from("propiedades")
       .insert({
-        user_id: body.user_id || null,
+        user_id: userId,
         titulo: body.titulo || "Sin título",
         descripcion: body.descripcion || "",
         tipo_transaccion: body.tipo_transaccion || "venta",

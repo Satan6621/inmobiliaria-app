@@ -46,6 +46,7 @@ export default function InventarioPage() {
   const [copySeleccionado, setCopySeleccionado] = useState<Record<number, string>>({});
   const [matchingBuyers, setMatchingBuyers] = useState<Record<number, any[]>>({});
   const [loadingMatch, setLoadingMatch] = useState<Record<number, boolean>>({});
+  const [guardando, setGuardando] = useState(false);
 
   // Form state
   const [form, setForm] = useState({
@@ -79,6 +80,8 @@ export default function InventarioPage() {
   };
 
   const handleGuardar = async () => {
+    if (guardando) return;
+    setGuardando(true);
     const precio_venta = form.precio_dueno * (1 + form.margen_pct / 100);
     const precio_m2 = form.metros > 0 ? precio_venta / form.metros : 0;
     const serviciosList: string[] = [];
@@ -98,7 +101,7 @@ export default function InventarioPage() {
     );
 
     try {
-      await fetch("/api/inventario", {
+      const res = await fetch("/api/inventario", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -123,6 +126,13 @@ export default function InventarioPage() {
           fotos_rutas: form.fotos.join(","),
         }),
       });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || "No se pudo guardar el inmueble. Inténtalo de nuevo.");
+        return;
+      }
+
       setShowForm(false);
       setForm({
         titulo: "", tipo: "Apartamento", estado: "Carabobo", municipio: "", zona: "", ciudad: "", urbanizacion: "",
@@ -133,6 +143,9 @@ export default function InventarioPage() {
       fetchInventario();
     } catch (error) {
       console.error("Error:", error);
+      alert("Error de conexión al guardar. Revisa tu red e inténtalo de nuevo.");
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -365,8 +378,8 @@ export default function InventarioPage() {
                   maxFiles={10}
                 />
               </div>
-              <button onClick={handleGuardar} className="btn-primary w-full">
-                Guardar en Cartera
+              <button onClick={handleGuardar} disabled={guardando} className="btn-primary w-full disabled:opacity-60 disabled:cursor-not-allowed">
+                {guardando ? "Guardando..." : "Guardar en Cartera"}
               </button>
             </div>
           </div>
@@ -529,12 +542,17 @@ export default function InventarioPage() {
                     onUpload={async (urls) => {
                       const fotosActuales = inm.fotos_rutas ? inm.fotos_rutas.split(",").filter(Boolean) : [];
                       const nuevasFotos = [...fotosActuales, ...urls].join(",");
-                      await fetch("/api/inventario", {
+                      const res = await fetch("/api/inventario", {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ id: inm.id, fotos_rutas: nuevasFotos }),
                       });
-                      fetchInventario();
+                      if (res.ok) {
+                        fetchInventario();
+                      } else {
+                        const data = await res.json().catch(() => ({}));
+                        alert(data.error || "No se pudieron guardar las fotos. Inténtalo de nuevo.");
+                      }
                     }}
                     existingImages={inm.fotos_rutas ? inm.fotos_rutas.split(",").filter(Boolean) : []}
                     maxFiles={10}

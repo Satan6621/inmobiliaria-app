@@ -303,9 +303,13 @@ export async function PATCH(request: NextRequest) {
 
       const codigo = `${ABREVIATURAS_ESTADOS[solicitud.estado] || "VEN"}-${100 + ((count || 0) % 900)}`;
 
+      const { data: userData } = await sb.auth.getUser();
+      const userId = userData?.user?.id ?? null;
+
       const { data: propiedad, error } = await sb
         .from("propiedades")
         .insert({
+          user_id: userId,
           titulo: `${solicitud.tipo_inmueble || "Propiedad"} en ${solicitud.zona || solicitud.estado} (captación ${solicitud.nombre})`,
           descripcion,
           tipo_transaccion: "venta",

@@ -5,8 +5,8 @@
  *  - Navegación (HTML) y estáticos: stale-while-revalidate → carga instantánea
  *    y disponible sin conexión en el interior del país.
  */
-const CACHE = "chuo-zu-v1";
-const CACHE_SNAPSHOT = "chuo-zu-snapshot-v1";
+const CACHE = "chuo-zu-v2";
+const CACHE_SNAPSHOT = "chuo-zu-snapshot-v2";
 const SNAPSHOT_KEY = "/api/snapshot";
 
 self.addEventListener("install", () => self.skipWaiting());

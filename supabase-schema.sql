@@ -270,13 +270,13 @@ create policy "propiedades_insert_own" on propiedades
     with check (auth.uid() = user_id or user_id is null);
 
 create policy "propiedades_update_own" on propiedades
-    for update to anon, authenticated
-    using (auth.uid() = user_id)
-    with check (auth.uid() = user_id);
+    for update to authenticated
+    using (auth.uid() = user_id or user_id is null)
+    with check (auth.uid() = user_id or user_id is null);
 
 create policy "propiedades_delete_own" on propiedades
-    for delete to anon, authenticated
-    using (auth.uid() = user_id);
+    for delete to authenticated
+    using (auth.uid() = user_id or user_id is null);
 
 -- 2. ALERTAS DE BÚSQUEDA: lectura pública + dueño gestiona
 alter table alertas_busqueda enable row level security;
