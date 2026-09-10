@@ -11,9 +11,9 @@ const VENEZUELA_DB = {
   Barcelona: { state: "Anzoátegui", zones: ["Nueva Barcelona", "San Cristóbal", "El Libertador", "Peñalver"], avgPrice: 27000 },
   "Santa Teresa": { state: "Aragua", zones: ["Alto Paraíso", "La Florida", "San Antonio"], avgPrice: 45000 },
   "La Victoria": { state: "Aragua", zones: ["Centro", "Ocumare", "Santa Cruz"], avgPrice: 22000 },
-  Tinaquillo: { state: "Cojedes", zones: ["Centro de Tinaquillo", "La Campiña", "Villa Italia", "Los Samanes", "Urbanización Miranda", "La Macandona", "Brisas del Sur", "Las Flores", "San Luis"], avgPrice: 20000 },
-  "San Carlos": { state: "Cojedes", zones: ["Centro de San Carlos", "Cantaclaro", "La Campiña", "Urbanización El Carmen", "Urbanización Limoncito", "La Aurora", "San Rafael", "El Maracay", "La Guacamaya"], avgPrice: 22000 },
-  Tinaco: { state: "Cojedes", zones: ["Tinaco centro", "El Amparo", "La Palma", "Lechozas"], avgPrice: 18000 },
+  Tinaquillo: { state: "Cojedes", zones: ["Centro de Tinaquillo", "La Campiña", "Villa Italia", "Los Samanes", "Urbanización Miranda", "La Macandona", "Brisas del Sur", "Las Flores", "San Luis"], avgPrice: 14000 },
+  "San Carlos": { state: "Cojedes", zones: ["Centro de San Carlos", "Cantaclaro", "La Campiña", "Urbanización El Carmen", "Urbanización Limoncito", "La Aurora", "San Rafael", "El Maracay", "La Guacamaya"], avgPrice: 16000 },
+  Tinaco: { state: "Cojedes", zones: ["Tinaco centro", "El Amparo", "La Palma", "Lechozas"], avgPrice: 11000 },
 };
 
 const TIPOS = {
@@ -72,9 +72,16 @@ const FUENTES = [
   { name: "Zillow Venezuela", url: "https://www.zillow.com" },
 ];
 
+function parsePrecio(raw: string, unit?: string): number {
+  let num = parseFloat(String(raw).replace(/\./g, ""));
+  if (!Number.isFinite(num)) return 0;
+  if (unit === "mil" || unit === "k") num *= 1000;
+  return num;
+}
+
 function parseSearchQuery(query: string) {
   const q = query.toLowerCase();
-  const result: { type?: string; city?: string; minBeds?: number; maxPrice?: number; services?: string[] } = {};
+  const result: { type?: string; city?: string; minBeds?: number; minPrice?: number; maxPrice?: number; services?: string[] } = {};
 
   // Detect type
   if (q.includes("casa")) result.type = "Casa";
@@ -99,11 +106,19 @@ function parseSearchQuery(query: string) {
   const bedMatch = q.match(/(\d+)\s*(habitacion|habs?|recamara|dormitorio|hab|hab\.)/);
   if (bedMatch) result.minBeds = parseInt(bedMatch[1]);
 
-  // Detect price
-  const priceMatch = q.match(/(\d+)\s*(mil|k|000|usd)/);
-  if (priceMatch) {
-    const num = parseInt(priceMatch[1]);
-    result.maxPrice = priceMatch[2] === "mil" || priceMatch[2] === "000" ? num * 1000 : num;
+  // Detect maximum price (menos de, hasta, menor a, máximo, etc.)
+  const maxMatch = q.match(/(?:menos de|o menos|hasta|maximo|máximo|inferior a|debajo de|por debajo de|menor a|menor de)\s*\$?\s*([\d.]+)\s*(mil|k|usd|dolares|dólares)?/);
+  if (maxMatch) result.maxPrice = parsePrecio(maxMatch[1], maxMatch[2]);
+
+  // Detect minimum price (desde, mínimo, mas de, mayor a, etc.)
+  const minMatch = q.match(/(?:desde|minimo|mínimo|mas de|más de|mayor a|mayor de|superior a|mas de)\s*\$?\s*([\d.]+)\s*(mil|k|usd|dolares|dólares)?/);
+  if (minMatch) result.minPrice = parsePrecio(minMatch[1], minMatch[2]);
+
+  // Detect price range "entre X y Y"
+  const rangeMatch = q.match(/entre\s+\$?\s*([\d.]+)\s*(mil|k)?\s*y\s*\$?\s*([\d.]+)\s*(mil|k|usd|dolares|dólares)?/);
+  if (rangeMatch) {
+    result.minPrice = parsePrecio(rangeMatch[1], rangeMatch[2]);
+    result.maxPrice = parsePrecio(rangeMatch[3], rangeMatch[4]);
   }
 
   // Detect services
@@ -129,7 +144,15 @@ function generateProperties(query: string, count: number = 5) {
     const baths = tipo.baths[Math.floor(Math.random() * tipo.baths.length)];
     const area = tipo.area[0] + Math.floor(Math.random() * (tipo.area[1] - tipo.area[0]));
     const basePrice = city.avgPrice * tipo.priceMult;
-    const price = Math.floor(basePrice + (beds * 5000) + (Math.random() * 20000));
+    let price: number;
+    if (parsed.maxPrice) {
+      price = Math.floor(parsed.maxPrice * 0.55 + Math.random() * parsed.maxPrice * 0.45);
+    } else {
+      price = Math.floor(basePrice * (0.55 + Math.random() * 0.35));
+    }
+    price = Math.max(1500, Math.round(price / 500) * 500);
+    if (parsed.minPrice && price < parsed.minPrice) price = parsed.minPrice;
+    if (parsed.maxPrice && price > parsed.maxPrice) price = parsed.maxPrice;
     const services = parsed.services?.length ? parsed.services : SERVICIOS[Math.floor(Math.random() * SERVICIOS.length)];
     const desc = DESCRIPCIONES[parsed.type as keyof typeof DESCRIPCIONES] || DESCRIPCIONES.Apartamento;
     const phone = ["0414", "0424", "0412", "0416", "0426"][Math.floor(Math.random() * 5)];
