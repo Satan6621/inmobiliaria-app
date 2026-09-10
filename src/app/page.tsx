@@ -135,8 +135,8 @@ export default function HomePage() {
           <div className="h-px flex-1 bg-gradient-to-l from-primary/50 to-transparent" />
         </div>
         <h1 className="text-4xl md:text-5xl font-bold font-[family-name:var(--font-display)] mb-4">
-          <span className="text-primary">Venezuela</span>{" "}
-          <span className="text-text-primary">Inmobiliaria</span>
+          <span className="text-primary">Inmobiliaria</span>{" "}
+          <span className="text-text-primary">Chuo-Zu</span>
         </h1>
         <p className="text-lg text-text-secondary max-w-2xl">
           Wholesaling, inversión y comercialización de bienes raíces con inteligencia artificial.
@@ -210,7 +210,7 @@ export default function HomePage() {
       {/* Footer */}
       <div className="text-center py-8 border-t border-border">
         <p className="text-xs text-text-muted">
-          Venezuela Inmobiliaria v2.0 &copy; {new Date().getFullYear()} — Con AI, Maps y más
+          Inmobiliaria Chuo-Zu v2.0 &copy; {new Date().getFullYear()} — Con AI, Maps y más
         </p>
       </div>
     </div>

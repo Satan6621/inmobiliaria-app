@@ -3,9 +3,9 @@ import Link from "next/link";
 import { FileText, Scale, AlertTriangle, UserCheck, BadgeInfo, Gavel } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Términos de Servicio | Venezuela Inmobiliaria",
+  title: "Términos de Servicio | Inmobiliaria Chuo-Zu",
   description:
-    "Términos y condiciones de uso de la plataforma Venezuela Inmobiliaria. Al usar el sitio aceptas estas condiciones.",
+    "Términos y condiciones de uso de la plataforma Inmobiliaria Chuo-Zu. Al usar el sitio aceptas estas condiciones.",
 };
 
 export default function TerminosServiciosPage() {
@@ -14,7 +14,7 @@ export default function TerminosServiciosPage() {
       icon: FileText,
       titulo: "1. Aceptación de los términos",
       texto:
-        "Al acceder y usar la plataforma Venezuela Inmobiliaria aceptas estos Términos de Servicio. Si no estás de acuerdo, por favor no utilices el sitio.",
+        "Al acceder y usar la plataforma Inmobiliaria Chuo-Zu aceptas estos Términos de Servicio. Si no estás de acuerdo, por favor no utilices el sitio.",
     },
     {
       icon: UserCheck,
@@ -32,7 +32,7 @@ export default function TerminosServiciosPage() {
       icon: Scale,
       titulo: "4. Límites de responsabilidad",
       texto:
-        "Venezuela Inmobiliaria no se responsabiliza por pérdidas, daños o perjuicios derivados del uso del sitio, de transacciones entre usuarios, de decisiones de inversión basadas en la información publicada, ni de fallos de disponibilidad del servicio. No prestamos asesoría jurídica ni financiera.",
+        "Inmobiliaria Chuo-Zu no se responsabiliza por pérdidas, daños o perjuicios derivados del uso del sitio, de transacciones entre usuarios, de decisiones de inversión basadas en la información publicada, ni de fallos de disponibilidad del servicio. No prestamos asesoría jurídica ni financiera.",
     },
     {
       icon: BadgeInfo,

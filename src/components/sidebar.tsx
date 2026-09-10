@@ -102,7 +102,7 @@ export function Sidebar() {
         {!collapsed && (
           <div className="animate-fade-in">
             <h1 className="text-sm font-bold font-[family-name:var(--font-display)] tracking-wide text-primary">
-              VENEZUELA
+              CHUO-ZU
             </h1>
             <p className="text-[10px] text-text-muted tracking-widest uppercase">
               Inmobiliaria

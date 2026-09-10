@@ -134,7 +134,7 @@ export function ImageUpload({ onUpload, existingImages = [], maxFiles = 10 }: Im
         </p>
         <p className="text-xs text-success flex items-center justify-center gap-1 mt-1">
           <ArrowDown className="w-3 h-3" />
-          Compresión automática en tu dispositivo antes de subir
+          Compresión WebP + marca de agua automática en el servidor
         </p>
         <input
           ref={fileInputRef}

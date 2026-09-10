@@ -27,7 +27,7 @@ export function CompartirPropiedad({ url, titulo }: { url?: string; titulo?: str
     } catch { /* user canceló o no soportado */ }
   };
 
-  const textoT = titulo ? `Mira esta propiedad: ${titulo}` : "Mira esta propiedad en Venezuela Inmobiliaria";
+  const textoT = titulo ? `Mira esta propiedad: ${titulo}` : "Mira esta propiedad en Inmobiliaria Chuo-Zu";
 
   return (
     <div className="flex items-center gap-2">

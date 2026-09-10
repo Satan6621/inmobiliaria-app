@@ -326,7 +326,45 @@ function generateProperties(query: string, count: number = 5) {
     });
   }
 
-  return properties.sort((a, b) => b.score_calidad - a.score_calidad);
+  return deduplicarRadar(properties.sort((a, b) => b.score_calidad - a.score_calidad));
+}
+
+/**
+ * De-duplicación "propiedades gemelas": agrupa anuncios casi idénticos
+ * (misma ubicación + características + banda de precio) y deja un
+ * representante señalando cuántas agencias/publicaciones lo ofrecen.
+ */
+function deduplicarRadar(resultados: any[]): any[] {
+  const clave = (r: any) => {
+    const partes = (r.ubicacion || "").split(",").map((s: string) => s.trim());
+    const zona = partes[0] || "?";
+    const banda = Math.round((r.precio || 0) / 2000) * 2000;
+    const m2 = Math.round((r.metros || 0) / 25) * 25;
+    return [zona, r.tipo, r.habitaciones, r.banos, m2, banda].join("|");
+  };
+
+  const grupos = new Map<string, any[]>();
+  for (const r of resultados) {
+    const k = clave(r);
+    if (!grupos.has(k)) grupos.set(k, []);
+    grupos.get(k)!.push(r);
+  }
+
+  const finales: any[] = [];
+  for (const miembros of grupos.values()) {
+    if (miembros.length === 1) {
+      finales.push(miembros[0]);
+      continue;
+    }
+    const rep = [...miembros].sort(
+      (a, b) =>
+        (Number(Boolean(b.es_real)) - Number(Boolean(a.es_real))) ||
+        (b.score_calidad || 0) - (a.score_calidad || 0)
+    )[0];
+    finales.push({ ...rep, gemelas: miembros.length });
+  }
+
+  return finales;
 }
 
 /**
@@ -463,7 +501,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const reales = await buscarEnBase(query);
+    const reales = deduplicarRadar(await buscarEnBase(query));
     if (reales.length > 0) {
       return NextResponse.json({
         resultados: reales,

@@ -27,6 +27,8 @@ export interface PropiedadPublica {
   garaje: boolean;
   esta_verificado: boolean;
   created_at: string;
+  /** Número de anuncios idénticos/casi idénticos encontrados (incluye esta). */
+  gemelas?: number;
   estado?: { nombre: string } | null;
   municipio?: { nombre: string } | null;
   imagenes?: ImagenPropiedad[];
@@ -80,7 +82,45 @@ export async function listarPropiedadesPublicas(filtros: FiltrosCatalogo = {}): 
   else if (filtros.orden === "caras") resultado.sort((a, b) => b.precio - a.precio);
   else resultado.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-  return resultado;
+  // ----- De-duplicación de "propiedades gemelas" -----
+  // Anuncios casi idénticos (misma ubicación + características + banda de precio)
+  // se colapsan en uno solo, indicando cuántas agencias lo ofrecen.
+  const claveGrupo = (p: PropiedadPublica): string => {
+    const m2 = p.metros_cuadrados ? Math.round(p.metros_cuadrados / 10) * 10 : -1;
+    const banda =
+      p.precio <= 20000 ? Math.round(p.precio / 1500) * 1500
+      : p.precio <= 50000 ? Math.round(p.precio / 3000) * 3000
+      : Math.round(p.precio / 6000) * 6000;
+    return [
+      p.estado?.nombre || "?",
+      p.municipio?.nombre || "?",
+      m2, p.habitaciones, p.banos, banda,
+    ].join("|");
+  };
+
+  const grupos = new Map<string, PropiedadPublica[]>();
+  for (const p of resultado) {
+    const k = claveGrupo(p);
+    if (!grupos.has(k)) grupos.set(k, []);
+    grupos.get(k)!.push(p);
+  }
+
+  const finales: PropiedadPublica[] = [];
+  for (const miembros of grupos.values()) {
+    if (miembros.length === 1) {
+      finales.push(miembros[0]);
+      continue;
+    }
+    // Representante: la más verificada; empate → la más reciente
+    const rep = [...miembros].sort((a, b) => {
+      const v = Number(b.esta_verificado || false) - Number(a.esta_verificado || false);
+      if (v !== 0) return v;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    })[0];
+    finales.push({ ...rep, gemelas: miembros.length });
+  }
+
+  return finales;
 }
 
 export async function obtenerPropiedadPublica(id: string): Promise<PropiedadPublica | null> {

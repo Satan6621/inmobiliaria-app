@@ -14,7 +14,7 @@ import { CompartirPropiedad } from "@/components/compartir-propiedad";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Catálogo de Propiedades | Venezuela Inmobiliaria",
+  title: "Catálogo de Propiedades | Inmobiliaria Chuo-Zu",
   description:
     "Compra y venta de propiedades en toda Venezuela: casas, apartamentos, terrenos y más. Filtra por estado y contáctanos por WhatsApp.",
 };
@@ -51,6 +51,11 @@ async function Card({ p }: { p: PropiedadPublica }) {
           {p.codigo && (
             <span className="absolute top-3 right-3 badge bg-black/60 text-white backdrop-blur-sm shadow-lg font-mono text-xs">
               #{p.codigo}
+            </span>
+          )}
+          {p.gemelas && p.gemelas > 1 && (
+            <span className="absolute bottom-3 left-3 badge badge-info shadow-lg text-[11px]">
+              {p.gemelas} agencias ofrecen esta propiedad
             </span>
           )}
         </div>

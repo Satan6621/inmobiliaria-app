@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import {
-  MapPin, Bed, Bath, Ruler, ImageOff, BadgeCheck, ArrowLeft, Phone, Handshake, Building2, CalendarDays,
+  MapPin, Bed, Bath, Ruler, ImageOff, BadgeCheck, ArrowLeft, Phone, Handshake, Building2, CalendarDays, TrendingDown,
 } from "lucide-react";
 import {
   obtenerPropiedadPublica, imagenPrincipal, serviciosDe, ubicacionDe, whatsappPropiedad,
@@ -10,6 +10,8 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import { CompartirPropiedad } from "@/components/compartir-propiedad";
 import { PropertyMap } from "@/components/property-map";
+import { PriceHistory } from "@/components/price-history";
+import { ReportarPropiedad } from "@/components/reportar-propiedad";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +25,7 @@ export async function generateMetadata({
   if (!p) return { title: "Propiedad no encontrada" };
   const img = imagenPrincipal(p);
   return {
-    title: `${p.titulo || `Propiedad ${p.codigo || ""}`} | Venezuela Inmobiliaria`,
+    title: `${p.titulo || `Propiedad ${p.codigo || ""}`} | Inmobiliaria Chuo-Zu`,
     description:
       `${p.tipo_inmueble}${p.habitaciones ? `, ${p.habitaciones} hab.` : ""} en ${ubicacionDe(p)} a ${formatCurrency(p.precio)}.`,
     openGraph: {
@@ -159,6 +161,18 @@ export default async function DetallePropiedadPage({
               </p>
             )}
           </div>
+
+          {/* Historial de precios */}
+          <div className="glass-card p-6">
+            <h2 className="font-semibold font-[family-name:var(--font-display)] mb-4 flex items-center gap-2">
+              <TrendingDown className="w-4 h-4 text-primary" /> Evolución del precio
+            </h2>
+            <PriceHistory
+              propiedadId={p.id}
+              precioActual={Number(p.precio || 0)}
+              titulo={p.titulo}
+            />
+          </div>
         </div>
 
         {/* Sidebar */}
@@ -231,6 +245,9 @@ export default async function DetallePropiedadPage({
             <h3 className="text-sm font-semibold text-text-secondary mb-3">Comparte esta propiedad</h3>
             <CompartirPropiedad titulo={p.titulo} />
           </div>
+
+          {/* Reporte antifraude */}
+          <ReportarPropiedad propiedadId={p.id} />
         </div>
       </div>
     </div>

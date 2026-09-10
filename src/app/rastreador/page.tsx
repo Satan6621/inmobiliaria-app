@@ -12,7 +12,8 @@ import { AISearch } from "@/components/ai-search";
 import { usePropiedadesFeed, matchBusquedaYNotificar, pedirPermisoNotificaciones } from "@/lib/realtime";
 import { authFetch } from "@/lib/api";
 import { getUserId } from "@/lib/auth";
-import { Wifi, WifiOff } from "lucide-react";
+import { useOfflineSnapshot } from "@/lib/offline";
+import { Wifi, WifiOff, CloudOff } from "lucide-react";
 
 interface ProspectoRastreo {
   fecha: string;
@@ -93,6 +94,9 @@ export default function RastreadorPage() {
   // Realtime: feed de propiedades compartido entre agentes
   const { items: feedRealtime, status: rtStatus, nuevoFeedItem } = usePropiedadesFeed(true);
 
+  // Modo offline: snapshot local para que el radar siga funcionando sin conexión
+  const { snapshot: snapshotOffline, offline } = useOfflineSnapshot();
+
   useEffect(() => {
     if (feedRealtime.length > 0) {
       setFeed(
@@ -107,8 +111,21 @@ export default function RastreadorPage() {
           esBajada: false,
         }))
       );
+    } else if (snapshotOffline && snapshotOffline.propiedades.length > 0) {
+      // Sin conexión: usar el snapshot local descargado previamente
+      setFeed(
+        snapshotOffline.propiedades.slice(0, 20).map((p) => ({
+          id: p.id,
+          titulo: p.titulo || "Propiedad",
+          precio: Number(p.precio || 0),
+          zona: p.estado || p.municipio || "Venezuela",
+          tipo: p.tipo_inmueble || "Apartamento",
+          fecha: "Offline",
+          esBajada: false,
+        }))
+      );
     }
-  }, [feedRealtime]);
+  }, [feedRealtime, snapshotOffline]);
 
   const [notifBanner, setNotifBanner] = useState(false);
 
@@ -287,12 +304,24 @@ export default function RastreadorPage() {
             <span className="badge badge-success animate-pulse flex items-center gap-1">
               <Wifi className="w-3 h-3" /> LIVE
             </span>
+          ) : offline ? (
+            <span className="badge badge-danger flex items-center gap-1">
+              <CloudOff className="w-3 h-3" /> Sin conexión · Snapshot local
+            </span>
           ) : (
             <span className="badge badge-danger flex items-center gap-1">
               <WifiOff className="w-3 h-3" /> Demo
             </span>
           )}
         </div>
+        {offline && (
+          <div className="flex items-center gap-2 p-3 mb-3 rounded-lg bg-warning/10 border border-warning/30 text-xs text-warning animate-slide-up">
+            <CloudOff className="w-4 h-4" />
+            Sin conexión. Este radar usa el último snapshot descargado
+            {(snapshotOffline?.total ?? 0) > 0 ? ` (${snapshotOffline!.total} propiedades)` : ""} —
+            se sincronizará automáticamente al recuperar señal.
+          </div>
+        )}
         {notifBanner && (
           <div className="flex items-center gap-2 p-3 mb-3 rounded-lg bg-success/10 border border-success/30 text-sm text-success animate-slide-up">
             <Bell className="w-4 h-4 animate-ring" />

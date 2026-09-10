@@ -3,10 +3,14 @@ import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { WhatsAppFloat } from "@/components/whatsapp-button";
+import { ServiceWorkerRegistrar } from "@/components/service-worker-registrar";
 
 export const metadata: Metadata = {
-  title: "Venezuela Inmobiliaria - Plataforma Integral de Bienes Raices",
-  description: "Plataforma integral de wholesaling y bienes raices en Venezuela. Rastreador de mercado, CRM, inventario y marketing multiplataforma.",
+  title: "Inmobiliaria Chuo-Zu - Plataforma Integral de Bienes Raíces",
+  description: "Plataforma integral de wholesaling y bienes raíces en Venezuela. Rastreador de mercado, CRM, inventario y marketing multiplataforma.",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
@@ -25,12 +29,13 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
+        <ServiceWorkerRegistrar />
         <ThemeProvider>
           <Sidebar />
           <main className="ml-[260px] min-h-screen">
             <div className="p-8">{children}</div>
             <footer className="p-6 border-t border-border-subtle text-center text-xs text-text-muted space-x-4">
-              <span>© {new Date().getFullYear()} Venezuela Inmobiliaria.</span>
+              <span>© {new Date().getFullYear()} Inmobiliaria Chuo-Zu.</span>
               <a href="/politicas-de-seguridad" className="hover:text-text-primary transition-colors">Política de Seguridad</a>
               <a href="/terminos-de-servicios" className="hover:text-text-primary transition-colors">Términos de Servicio</a>
             </footer>

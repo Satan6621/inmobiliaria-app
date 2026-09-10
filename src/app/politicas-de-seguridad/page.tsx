@@ -3,9 +3,9 @@ import Link from "next/link";
 import { ShieldCheck, ShieldAlert, Lock, Eye, Database, Share2, RefreshCcw } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Política de Seguridad | Venezuela Inmobiliaria",
+  title: "Política de Seguridad | Inmobiliaria Chuo-Zu",
   description:
-    "Política de seguridad y protección de datos de Venezuela Inmobiliaria: cómo protegemos la información de clientes y visitantes.",
+    "Política de seguridad y protección de datos de Inmobiliaria Chuo-Zu: cómo protegemos la información de clientes y visitantes.",
 };
 
 export default function PoliticasSeguridadPage() {
@@ -14,7 +14,7 @@ export default function PoliticasSeguridadPage() {
       icon: ShieldCheck,
       titulo: "1. Nuestro compromiso",
       texto:
-        "En Venezuela Inmobiliaria tratamos la información de nuestros clientes y visitantes con confidencialidad y responsabilidad. Implementamos medidas técnicas y organizativas para proteger los datos personales y las comunicaciones dentro de la plataforma.",
+        "En Inmobiliaria Chuo-Zu tratamos la información de nuestros clientes y visitantes con confidencialidad y responsabilidad. Implementamos medidas técnicas y organizativas para proteger los datos personales y las comunicaciones dentro de la plataforma.",
     },
     {
       icon: Lock,

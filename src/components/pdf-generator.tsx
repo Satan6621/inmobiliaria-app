@@ -53,7 +53,7 @@ export function PDFGenerator({ inmueble }: PDFGeneratorProps) {
 <body>
   <div class="header">
     <h1>🏢 ${inmueble.titulo}</h1>
-    <p>Venezuela Inmobiliaria - Ficha Técnica Profesional</p>
+    <p>Inmobiliaria Chuo-Zu - Ficha Técnica Profesional</p>
   </div>
   
   <div class="price-box">
@@ -83,7 +83,7 @@ export function PDFGenerator({ inmueble }: PDFGeneratorProps) {
   </div>
 
   <div class="footer">
-    <p>Ficha generada por Venezuela Inmobiliaria | ${new Date().toLocaleDateString("es-VE")}</p>
+    <p>Ficha generada por Inmobiliaria Chuo-Zu | ${new Date().toLocaleDateString("es-VE")}</p>
     <p>Para más información contactar al intermediario autorizado</p>
   </div>
 </body>
