@@ -541,3 +541,96 @@ drop policy if exists "inmuebles-fotos delete" on storage.objects;
 create policy "inmuebles-fotos delete" on storage.objects
     for delete to anon, authenticated
     using (bucket_id = 'inmuebles-fotos');
+
+-- ============================================================
+-- CAPTACIÓN: solicitudes públicas de venta/compra
+-- Formularios públicos (locación de clientes). El vendedor deja su
+-- propiedad, el comprador deja su presupuesto, y el asesor responde
+-- por WhatsApp. Se pueden promover a 'propiedades'.
+-- ============================================================
+create table if not exists solicitudes (
+    id bigint generated always as identity primary key,
+    tipo text not null check (tipo in ('vender', 'comprar')),
+    nombre text not null,
+    telefono text not null,
+    whatsapp_link text,
+    tipo_inmueble text default 'Apartamento',
+    precio numeric(12, 2),
+    presupuesto_min numeric(12, 2),
+    presupuesto_max numeric(12, 2),
+    estado text default 'Cojedes',
+    zona text,
+    habitaciones int default 0,
+    banos int default 0,
+    metros numeric(8, 2),
+    descripcion text,
+    estado_solicitud text default 'NUEVA'
+        check (estado_solicitud in ('NUEVA', 'CONTACTADA', 'PROMOVIDA', 'DESCARTADA')),
+    notas text default '',
+    fuente text default 'Sitio público',
+    created_at timestamptz default now(),
+    updated_at timestamptz default now()
+);
+create index if not exists solicitudes_estado_idx on solicitudes (estado_solicitud);
+create index if not exists solicitudes_tipo_idx on solicitudes (tipo);
+
+-- RLS solicitudes: el público inserta sin registrarse; solo las
+-- sesiones (anon/autenticadas, es decir el asesor) leen y gestionan.
+alter table solicitudes enable row level security;
+drop policy if exists "solicitudes_insert_pub" on solicitudes;
+create policy "solicitudes_insert_pub" on solicitudes
+    for insert to anon, authenticated with check (true);
+drop policy if exists "solicitudes_select_auth" on solicitudes;
+create policy "solicitudes_select_auth" on solicitudes
+    for select to authenticated using (true);
+drop policy if exists "solicitudes_update_auth" on solicitudes;
+create policy "solicitudes_update_auth" on solicitudes
+    for update to authenticated using (true);
+drop policy if exists "solicitudes_delete_auth" on solicitudes;
+create policy "solicitudes_delete_auth" on solicitudes
+    for delete to authenticated using (true);
+
+-- ============================================================
+-- COINCIDENCIAS: resultados del matcher automático
+-- Al captar un vendedor -> cruza con compradores activos.
+-- Al captar un comprador -> cruza con propiedades/prospectos.
+-- ============================================================
+create table if not exists coincidencias (
+    id bigint generated always as identity primary key,
+    solicitud_id bigint references solicitudes(id) on delete cascade,
+    tipo_match text not null, -- 'propiedad' | 'prospecto' | 'comprador'
+    titulo_match text,
+    precio_match numeric(12, 2),
+    zona_match text,
+    contacto_match text,
+    enlace_match text,
+    estado text default 'NUEVA' check (estado in ('NUEVA', 'CONTACTADA', 'CERRADA')),
+    created_at timestamptz default now()
+);
+create index if not exists coincidencias_solicitud_idx on coincidencias (solicitud_id);
+
+alter table coincidencias enable row level security;
+drop policy if exists "coincidencias_insert_auth" on coincidencias;
+create policy "coincidencias_insert_auth" on coincidencias
+    for insert to anon, authenticated with check (true);
+drop policy if exists "coincidencias_select_auth" on coincidencias;
+create policy "coincidencias_select_auth" on coincidencias
+    for select to authenticated using (true);
+drop policy if exists "coincidencias_update_auth" on coincidencias;
+create policy "coincidencias_update_auth" on coincidencias
+    for update to authenticated using (true);
+
+-- Realtime para captación y coincidencias
+do $$ begin
+    alter publication supabase_realtime add table solicitudes;
+exception when duplicate_object then null; end $$;
+do $$ begin
+    alter publication supabase_realtime add table coincidencias;
+exception when duplicate_object then null; end $$;
+
+-- Trigger updated_at para solicitudes
+do $$ begin
+    drop trigger if exists trg_solicitudes_updated on solicitudes;
+exception when others then null; end $$;
+create trigger trg_solicitudes_updated before update on solicitudes
+    for each row execute function update_timestamp();

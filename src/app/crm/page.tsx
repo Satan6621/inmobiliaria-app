@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Phone, ExternalLink, Edit3, Save, Trash2, BarChart3, Image, X, Plus } from "lucide-react";
-import { ESTADOS_GESTION } from "@/lib/constants";
+import { Users, Phone, ExternalLink, Edit3, Save, Trash2, BarChart3, Image, X, Plus, Handshake, Zap, Link2, ArrowUpRight } from "lucide-react";
+import { ESTADOS_GESTION, ESTADOS_SOLICITUD } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
+import { authFetch } from "@/lib/api";
 
 interface Prospecto {
   id: number;
@@ -27,6 +28,42 @@ interface Prospecto {
   notas_imagenes: string;
 }
 
+interface Solicitud {
+  id: number;
+  tipo: "vender" | "comprar";
+  nombre: string;
+  telefono: string;
+  whatsapp_link: string;
+  tipo_inmueble: string;
+  precio: number;
+  presupuesto_min: number;
+  presupuesto_max: number;
+  estado: string;
+  zona: string;
+  habitaciones: number;
+  banos: number;
+  metros: number;
+  descripcion: string;
+  estado_solicitud: string;
+  notas: string;
+  fuente: string;
+  created_at: string;
+}
+
+interface Coincidencia {
+  id: number;
+  solicitud_id: number;
+  tipo_match: string;
+  titulo_match: string;
+  precio_match: number;
+  zona_match: string;
+  contacto_match: string;
+  enlace_match: string;
+  estado: string;
+  created_at: string;
+  solicitud?: { nombre: string; telefono: string; tipo: string };
+}
+
 export default function CRMPage() {
   const [prospectos, setProspectos] = useState<Prospecto[]>([]);
   const [compradores, setCompradores] = useState<any[]>([]);
@@ -35,7 +72,9 @@ export default function CRMPage() {
   const [editando, setEditando] = useState<number | null>(null);
   const [nuevoEstado, setNuevoEstado] = useState("");
   const [notaRapida, setNotaRapida] = useState("");
-  const [activeTab, setActiveTab] = useState<"prospectos" | "compradores">("prospectos");
+  const [activeTab, setActiveTab] = useState<"prospectos" | "compradores" | "captacion" | "coincidencias">("prospectos");
+  const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
+  const [coincidencias, setCoincidencias] = useState<Coincidencia[]>([]);
   const [editandoImagenes, setEditandoImagenes] = useState<number | null>(null);
   const [nuevaImagenUrl, setNuevaImagenUrl] = useState("");
   const [notasImagen, setNotasImagen] = useState("");
@@ -46,14 +85,20 @@ export default function CRMPage() {
 
   const fetchData = async () => {
     try {
-      const [prospectosRes, compradoresRes] = await Promise.all([
+      const [prospectosRes, compradoresRes, solicitudesRes, coincidenciasRes] = await Promise.all([
         fetch("/api/prospectos"),
         fetch("/api/compradores"),
+        authFetch("/api/solicitudes"),
+        authFetch("/api/coincidencias"),
       ]);
       const prospectosData = await prospectosRes.json();
       const compradoresData = await compradoresRes.json();
+      const solicitudesData = await solicitudesRes.json();
+      const coincidenciasData = await coincidenciasRes.json();
       setProspectos(prospectosData.prospectos || []);
       setCompradores(compradoresData.data || []);
+      setSolicitudes(solicitudesData.solicitudes || []);
+      setCoincidencias(coincidenciasData.coincidencias || []);
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -119,6 +164,62 @@ export default function CRMPage() {
     guardarImagenes(id, imagenes, notasImagen);
   };
 
+  const cambiarEstadoSolicitud = async (id: number, estado_solicitud: string) => {
+    try {
+      await authFetch("/api/solicitudes", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, estado_solicitud }),
+      });
+      setSolicitudes((prev) => prev.map((s) => s.id === id ? { ...s, estado_solicitud } : s));
+    } catch (e) { console.error(e); }
+  };
+
+  const guardarNotaSolicitud = async (id: number, notas: string) => {
+    try {
+      await authFetch("/api/solicitudes", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, notas }),
+      });
+      setSolicitudes((prev) => prev.map((s) => s.id === id ? { ...s, notas } : s));
+    } catch (e) { console.error(e); }
+  };
+
+  const promoverSolicitud = async (id: number) => {
+    try {
+      await authFetch("/api/solicitudes", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action: "promover" }),
+      });
+      setSolicitudes((prev) => prev.map((s) => s.id === id ? { ...s, estado_solicitud: "PROMOVIDA" } : s));
+    } catch (e) { console.error(e); }
+  };
+
+  const borrarSolicitud = async (id: number) => {
+    if (!confirm("¿Eliminar esta solicitud? Esta acción no se puede deshacer.")) return;
+    try {
+      await authFetch("/api/solicitudes", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      setSolicitudes((prev) => prev.filter((s) => s.id !== id));
+    } catch (e) { console.error(e); }
+  };
+
+  const actualizarCoincidencia = async (id: number, estado: string) => {
+    try {
+      await authFetch("/api/coincidencias", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, estado }),
+      });
+      setCoincidencias((prev) => prev.map((c) => c.id === id ? { ...c, estado } : c));
+    } catch (e) { console.error(e); }
+  };
+
   const stats = {
     total: prospectos.length,
     nuevos: prospectos.filter((p) => p.estado_gestion === "NUEVO").length,
@@ -126,6 +227,8 @@ export default function CRMPage() {
     negociacion: prospectos.filter((p) => p.estado_gestion === "EN NEGOCIACION").length,
     totalCompradores: compradores.length,
     compradoresActivos: compradores.filter((c) => c.estado_comprador === "Activo").length,
+    captacion: solicitudes.length,
+    coincidencias: coincidencias.length,
   };
 
   if (loading) {
@@ -207,6 +310,28 @@ export default function CRMPage() {
           }`}
         >
           Compradores ({stats.totalCompradores})
+        </button>
+        <button
+          onClick={() => setActiveTab("captacion")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeTab === "captacion"
+              ? "bg-primary text-white"
+              : "bg-surface-elevated text-text-muted hover:bg-surface-hover"
+          }`}
+        >
+          Captación ({stats.captacion})
+        </button>
+        <button
+          onClick={() => setActiveTab("coincidencias")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeTab === "coincidencias"
+              ? "bg-primary text-white"
+              : "bg-surface-elevated text-text-muted hover:bg-surface-hover"
+          }`}
+        >
+          <span className="flex items-center gap-1.5">
+            <Zap className="w-3.5 h-3.5" /> Coincidencias
+          </span>
         </button>
       </div>
 
@@ -366,6 +491,160 @@ export default function CRMPage() {
                       }`}>
                         {c.prioridad}
                       </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
+
+      {/* Tabla de Captación */}
+      {activeTab === "captacion" && (
+        solicitudes.length === 0 ? (
+          <div className="glass-card p-12 text-center">
+            <Handshake className="w-12 h-12 text-text-muted mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-text-primary mb-2">Sin solicitudes</h3>
+            <p className="text-sm text-text-secondary mb-4">
+              Comparte tu link de captación para recibir vendedores y compradores interesados.
+            </p>
+            <a href="/captacion" target="_blank" className="btn-primary inline-flex items-center gap-2">
+              <Link2 className="w-4 h-4" /> Abrir página de captación
+            </a>
+          </div>
+        ) : (
+          <div className="table-container overflow-x-auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Tipo</th>
+                  <th>Cliente</th>
+                  <th>Contacto</th>
+                  <th>Tipo Inm.</th>
+                  <th>Zona</th>
+                  <th>Precio / Presupuesto</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {solicitudes.map((s) => (
+                  <tr key={s.id}>
+                    <td className="text-text-muted font-mono text-xs">#{s.id}</td>
+                    <td>
+                      <span className={`badge ${s.tipo === "vender" ? "badge-warning" : "badge-info"}`}>
+                        {s.tipo === "vender" ? "Vende" : "Compra"}
+                      </span>
+                    </td>
+                    <td>
+                      <p className="text-sm font-medium">{s.nombre}</p>
+                      <p className="text-[11px] text-text-muted">{new Date(s.created_at).toLocaleDateString("es-VE")}</p>
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs">{s.telefono}</span>
+                        <a href={s.whatsapp_link || `https://wa.me/584141234567`} target="_blank" rel="noopener noreferrer"
+                          className="p-1.5 rounded-lg hover:bg-surface-hover text-success">
+                          <Phone className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
+                    </td>
+                    <td><span className="badge badge-info">{s.tipo_inmueble}</span></td>
+                    <td className="text-xs text-text-secondary">{s.zona || s.estado}</td>
+                    <td className="text-xs">
+                      {s.tipo === "vender"
+                        ? (s.precio ? <span className="text-success font-semibold text-sm">{formatCurrency(s.precio)}</span> : <span className="text-text-muted">por definir</span>)
+                        : <span className="text-sm">${Number(s.presupuesto_min || 0).toLocaleString()} - ${Number(s.presupuesto_max || 0).toLocaleString()}</span>}
+                    </td>
+                    <td>
+                      <select value={s.estado_solicitud}
+                        onChange={(e) => cambiarEstadoSolicitud(s.id, e.target.value)}
+                        className={`badge cursor-pointer appearance-none ${s.estado_solicitud === "NUEVA" ? "badge-info" : s.estado_solicitud === "CONTACTADA" ? "badge-warning" : s.estado_solicitud === "PROMOVIDA" ? "badge-success" : "badge-danger"} text-xs`}>
+                        {ESTADOS_SOLICITUD.map((est) => <option key={est} value={est}>{est}</option>)}
+                      </select>
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-1">
+                        {s.tipo === "vender" && s.estado_solicitud !== "PROMOVIDA" && (
+                          <button onClick={() => promoverSolicitud(s.id)} title="Publicar como propiedad en Mi CRM"
+                            className="p-1.5 rounded-lg hover:bg-surface-hover text-amber-400">
+                            <ArrowUpRight className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <button onClick={() => borrarSolicitud(s.id)} title="Eliminar"
+                          className="p-1.5 rounded-lg hover:bg-surface-hover text-danger">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
+
+      {/* Tabla de Coincidencias */}
+      {activeTab === "coincidencias" && (
+        coincidencias.length === 0 ? (
+          <div className="glass-card p-12 text-center">
+            <Zap className="w-12 h-12 text-text-muted mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-text-primary mb-2">Sin coincidencias</h3>
+            <p className="text-sm text-text-secondary">
+              Cuando alguien se registre en captación, el sistema buscará automáticamente
+              compradores, propiedades y ofertas de propietarios compatibles.
+            </p>
+          </div>
+        ) : (
+          <div className="table-container overflow-x-auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Solicitud</th>
+                  <th>Tipo Match</th>
+                  <th>Coincidencia</th>
+                  <th>Zona</th>
+                  <th>Contacto</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {coincidencias.map((c) => (
+                  <tr key={c.id}>
+                    <td className="text-text-muted font-mono text-xs">#{c.id}</td>
+                    <td>
+                      <p className="text-xs font-medium">{c.solicitud?.nombre || `Solicitud #${c.solicitud_id}`}</p>
+                      <p className="text-[11px] text-text-muted">{c.tipo_match}</p>
+                    </td>
+                    <td>
+                      <span className={`badge ${
+                        c.tipo_match === "propiedad" ? "badge-success" :
+                        c.tipo_match === "comprador" ? "badge-info" : "badge-warning"
+                      }`}>
+                        {c.tipo_match}
+                      </span>
+                    </td>
+                    <td>
+                      <p className="text-xs max-w-[200px] truncate">{c.titulo_match}</p>
+                      {c.enlace_match && (
+                        <a href={c.enlace_match} target="_blank" rel="noopener noreferrer"
+                          className="text-[11px] text-blue-400 hover:underline flex items-center gap-1">
+                          Ver enlace <ExternalLink className="w-2.5 h-2.5" />
+                        </a>
+                      )}
+                    </td>
+                    <td className="text-xs text-text-secondary">{c.zona_match || "-"}</td>
+                    <td className="text-xs">{c.contacto_match || c.solicitud?.telefono || "-"}</td>
+                    <td>
+                      <select value={c.estado}
+                        onChange={(e) => actualizarCoincidencia(c.id, e.target.value)}
+                        className={`badge cursor-pointer appearance-none ${c.estado === "NUEVA" ? "badge-info" : c.estado === "CONTACTADA" ? "badge-warning" : "badge-success"} text-xs`}>
+                        {["NUEVA", "CONTACTADA", "CERRADA"].map((est) => <option key={est} value={est}>{est}</option>)}
+                      </select>
                     </td>
                   </tr>
                 ))}

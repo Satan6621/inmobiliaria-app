@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
+import { buildWhatsAppLink, WHATSAPP_COJEDES } from "@/lib/constants";
 
 const VENEZUELA_DB = {
   Valencia: { state: "Carabobo", zones: ["Norte", "Sur", "Ciudad Bonita", "El Pedregal", "La Viña", "Naguanagua", "San Blas", "Tocuyito"], avgPrice: 35000 },
@@ -144,15 +146,17 @@ function parsePrecio(raw: string, unit?: string): number {
 
 function parseSearchQuery(query: string) {
   const q = query.toLowerCase();
-  const result: { type?: string; city?: string; minBeds?: number; minPrice?: number; maxPrice?: number; services?: string[] } = {};
+  const result: { type?: string; tipoExplicito?: boolean; city?: string; minBeds?: number; minPrice?: number; maxPrice?: number; services?: string[] } = {};
 
   // Detect type
+  let tipoExplicito = true;
   if (q.includes("casa") || q.includes("quinta") || q.includes("quintas")) result.type = "Casa";
   else if (q.includes("terreno") || q.includes("lote")) result.type = "Terreno";
   else if (q.includes("penthouse")) result.type = "Penthouse";
   else if (q.includes("townhouse")) result.type = "Townhouse";
   else if (q.includes("duplex")) result.type = "Duplex";
-  else result.type = "Apartamento";
+  else { result.type = "Apartamento"; tipoExplicito = false; }
+  result.tipoExplicito = tipoExplicito;
 
   // Detect city
   for (const city of Object.keys(VENEZUELA_DB)) {
@@ -255,6 +259,122 @@ function generateProperties(query: string, count: number = 5) {
   return properties.sort((a, b) => b.score_calidad - a.score_calidad);
 }
 
+/**
+ * Búsqueda REAL sobre la base de datos (propiedades del catálogo +
+ * ofertas directas de propietarios captadas por el rastreador).
+ * Devuelve [] si no hay datos reales todavía.
+ */
+async function buscarEnBase(query: string): Promise<any[]> {
+  try {
+    const parsed = parseSearchQuery(query);
+    const ciudad = (parsed.city || "").toLowerCase();
+    const resultados: any[] = [];
+
+    // 1) Catálogo propio (propiedades)
+    let q = supabase
+      .from("propiedades")
+      .select("*, estado:estados(nombre), municipio:municipios(nombre), zona:zonas_urbanizaciones(nombre)")
+      .not("estatus", "in", "(PAUSADO,VENDIDO)")
+      .limit(60);
+    if (parsed.maxPrice) q = q.lte("precio", parsed.maxPrice);
+    if (parsed.minPrice) q = q.gte("precio", parsed.minPrice);
+    if (parsed.tipoExplicito && parsed.type && parsed.type !== "Apartamento") q = q.eq("tipo_inmueble", parsed.type);
+    if (parsed.minBeds) q = q.gte("habitaciones", parsed.minBeds);
+
+    const { data: props } = await q;
+    const propiedades = (props || []).filter((p: any) => {
+      const texto = [
+        p.titulo, p.descripcion, p.direccion_completa,
+        p.estado?.nombre, p.municipio?.nombre, p.zona?.nombre,
+      ].filter(Boolean).join(" ").toLowerCase();
+      return !ciudad || texto.includes(ciudad);
+    });
+
+    for (const p of propiedades) {
+      const servicios: string[] = [];
+      if (p.tiene_tanque_agua) servicios.push("Tanque de agua");
+      if (p.tiene_planta_electrica) servicios.push("Planta eléctrica");
+      if (p.aire_acondicionado) servicios.push("A/A");
+      if (p.internet) servicios.push("Internet");
+      if (p.piscina) servicios.push("Piscina");
+      if (p.garaje) servicios.push("Garaje");
+      const telefono = p.telefono_agente || WHATSAPP_COJEDES;
+      const mensaje = `Hola, me interesa ${p.titulo || `la propiedad ${p.codigo || ""}`}${p.codigo ? ` (#${p.codigo})` : ""}. ¿Sigue disponible?`;
+      resultados.push({
+        titulo: p.titulo || (p.codigo ? `Propiedad ${p.codigo}` : "Propiedad disponible"),
+        precio: Number(p.precio || 0),
+        ubicacion: [p.zona?.nombre, p.municipio?.nombre, p.estado?.nombre, "Venezuela"].filter(Boolean).join(", "),
+        tipo: p.tipo_inmueble || "Apartamento",
+        telefono: telefono || "Ver enlace",
+        servicios,
+        resumen: p.descripcion || "Disponible. Escríbenos para más información.",
+        fuente: "Catálogo inmobiliario",
+        fuente_url: undefined,
+        metros: p.metros_cuadrados,
+        habitaciones: p.habitaciones,
+        banos: p.banos,
+        score_calidad: p.esta_verificado ? 90 : 70,
+        fecha_publicacion: (p.created_at || "").slice(0, 10),
+        es_real: true,
+        origen: "base de datos",
+        codigo: p.codigo,
+        whatsapp: buildWhatsAppLink(telefono, mensaje),
+      });
+    }
+
+    // 2) Ofertas directas de propietarios (prospectos del rastreador)
+    const { data: pros } = await supabase
+      .from("prospectos")
+      .select("*")
+      .ilike("rol", "%VENDEDOR%")
+      .order("urgencia_score", { ascending: false })
+      .limit(40);
+
+    const prospectos = (pros || []).filter((p: any) => {
+      if (parsed.maxPrice && p.precio_usd > parsed.maxPrice) return false;
+      if (parsed.minPrice && p.precio_usd < parsed.minPrice) return false;
+      const texto = `${p.titulo || ""} ${p.detalle || ""} ${p.zona || ""}`.toLowerCase();
+      return !ciudad || texto.includes(ciudad);
+    });
+
+    for (const pr of prospectos.slice(0, 8)) {
+      const t = (pr.titulo || "").toLowerCase();
+      const tipo = t.includes("casa") || t.includes("quinta")
+        ? "Casa"
+        : t.includes("terreno") || t.includes("lote")
+          ? "Terreno"
+          : t.includes("townhouse")
+            ? "Townhouse"
+            : t.includes("penthouse")
+              ? "Penthouse"
+              : "Apartamento";
+      resultados.push({
+        titulo: pr.titulo || `Oportunidad en ${pr.zona || "la zona"}`,
+        precio: Number(pr.precio_usd || 0),
+        ubicacion: `${[pr.zona, "Venezuela"].filter(Boolean).join(", ")}`,
+        tipo,
+        telefono: pr.telefono || "Ver enlace",
+        servicios: (pr.servicios || "Estándar").split(" | ").filter(Boolean),
+        resumen: pr.detalle || "Publicación directa del propietario.",
+        fuente: "Propietario directo",
+        fuente_url: pr.enlace || undefined,
+        metros: pr.metros,
+        habitaciones: 0,
+        banos: 0,
+        score_calidad: Math.max(60, Number(pr.urgencia_score || 0)),
+        fecha_publicacion: pr.fecha || "",
+        es_real: true,
+        origen: "propietario directo",
+        whatsapp: pr.whatsapp_link || (pr.telefono && pr.telefono !== "Ver enlace" ? buildWhatsAppLink(pr.telefono) : ""),
+      });
+    }
+
+    return resultados.sort((a, b) => b.score_calidad - a.score_calidad);
+  } catch {
+    return [];
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { query } = await request.json();
@@ -266,19 +386,31 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const properties = generateProperties(query);
+    const reales = await buscarEnBase(query);
+    if (reales.length > 0) {
+      return NextResponse.json({
+        resultados: reales,
+        total: reales.length,
+        query: query,
+        message: `${reales.length} resultados reales para "${query}"`,
+        es_en_vivo: true,
+      });
+    }
 
+    const properties = generateProperties(query);
     return NextResponse.json({
       resultados: properties,
       total: properties.length,
       query: query,
-      message: `Se encontraron ${properties.length} propiedades para "${query}"`,
+      message: `No hay resultados reales todavía para "${query}". Mostrando datos de ejemplo: capta vendedores con tu link de Captación o sube propiedades en "Mi CRM".`,
+      demo: true,
     });
   } catch (error) {
     console.error("Search error:", error);
     return NextResponse.json({
       resultados: generateProperties("apartamento Valencia"),
       error: null,
+      demo: true,
     });
   }
 }

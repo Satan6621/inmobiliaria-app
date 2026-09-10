@@ -22,6 +22,7 @@ import {
   Calendar,
   Bell,
   UserCheck,
+  Handshake,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ThemeToggle } from "./theme-toggle";
@@ -64,6 +65,7 @@ function ConnectionIndicator() {
 
 const navItems = [
   { href: "/rastreador", label: "Rastreador", icon: Search, color: "text-blue-600" },
+  { href: "/captacion", label: "Captación", icon: Handshake, color: "text-teal-600" },
   { href: "/crm", label: "CRM & Leads", icon: Users, color: "text-emerald-600" },
   { href: "/inventario", label: "Inventario", icon: Home, color: "text-amber-600" },
   { href: "/mi-crm", label: "Mi CRM", icon: UserCheck, color: "text-indigo-600" },

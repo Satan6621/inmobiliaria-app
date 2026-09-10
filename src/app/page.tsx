@@ -1,8 +1,9 @@
 "use client";
 
 import { MetricCard } from "@/components/metric-card";
-import { Search, Users, Home, Calculator, FileText, MessageSquare, TrendingUp, ArrowRight, BarChart3, Scale, Brain, Map } from "lucide-react";
+import { Search, Users, Home, Calculator, FileText, MessageSquare, TrendingUp, ArrowRight, BarChart3, Scale, Brain, Map, Handshake, Link2, Copy, Check } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
 const features = [
   {
@@ -80,8 +81,47 @@ const features = [
 ];
 
 export default function HomePage() {
+  const [copiado, setCopiado] = useState(false);
+  const copiarLink = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/captacion`);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch { /* noop */ }
+  };
+
   return (
     <div className="max-w-7xl mx-auto animate-fade-in">
+      {/* CT Banner */}
+      <div className="glass-card p-6 mb-12 bg-gradient-to-r from-primary/10 via-transparent to-success/10 border-primary/20">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+          <div className="flex items-start gap-4">
+            <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex-shrink-0">
+              <Handshake className="w-7 h-7 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-xl md:text-2xl font-bold font-[family-name:var(--font-display)] mb-1">
+                ¿Quieres <span className="text-primary">conseguir clientes</span> todos los días?
+              </h2>
+              <p className="text-text-secondary text-sm max-w-xl">
+                Comparte tu link de captación para recibir vendedores y compradores.
+                El sistema busca coincidencias automáticamente y te avisa por WhatsApp.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button onClick={copiarLink}
+              className="btn-secondary flex items-center gap-2">
+              {copiado ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
+              {copiado ? "¡Copiado!" : "Copiar link"}
+            </button>
+            <a href="/captacion" className="btn-primary flex items-center gap-2">
+              <Link2 className="w-4 h-4" /> Ver página de captación
+            </a>
+          </div>
+        </div>
+      </div>
+
       {/* Hero Section */}
       <div className="mb-12">
         <div className="flex items-center gap-3 mb-4">

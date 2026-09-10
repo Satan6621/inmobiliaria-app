@@ -119,7 +119,22 @@ export const PALABRAS_COMPRADOR = [
 
 export const ESTADOS_GESTION = ["NUEVO", "CONTACTADO", "EN NEGOCIACION", "DESCARTADO"] as const;
 
+export const ESTADOS_SOLICITUD = ["NUEVA", "CONTACTADA", "PROMOVIDA", "DESCARTADA"] as const;
+
 export const TIPOS_INMUEBLE = ["Apartamento", "Casa", "Townhouse", "Terreno", "Galpón", "Oficina/Local"] as const;
+
+/** Número de WhatsApp del asesor: 58 + 41234567 (sin el 0 inicial) */
+export const WHATSAPP_COJEDES = "584141234567";
+
+/** Convierte un teléfono venezolano suelto a un link wa.me */
+export function buildWhatsAppLink(telefono: string | null | undefined, mensaje?: string): string {
+  const limpio = (telefono || "").replace(/[^0-9]/g, "");
+  let numero = limpio;
+  if (limpio.startsWith("0")) numero = `58${limpio.slice(1)}`;
+  else if (!limpio.startsWith("58")) numero = `58${limpio}`;
+  const url = `https://wa.me/${numero}`;
+  return mensaje ? `${url}?text=${encodeURIComponent(mensaje)}` : url;
+}
 
 export const DEFAULT_BOT_TOKEN = "8918703330:AAG74VYqyO0L11y0BKqCy5HFiAqPbBWCJOM";
 export const DEFAULT_CHAT_ID = "1841487600";
