@@ -31,15 +31,11 @@ export async function POST(request: NextRequest) {
     }
 
     const sb = sbFor(request);
-    const { data, error } = await sb
-      .from("reportes_propiedades")
-      .insert({
-        propiedad_id,
-        motivo,
-        comentarios: String(comentarios || "").slice(0, 2000),
-      })
-      .select("id")
-      .single();
+    const { error } = await sb.from("reportes_propiedades").insert({
+      propiedad_id,
+      motivo,
+      comentarios: String(comentarios || "").slice(0, 2000),
+    });
 
     if (error) {
       // fallback: si la tabla aún no existe en Supabase, avisar (42P01/PGRST205)
@@ -47,7 +43,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: sinTabla ? 501 : 500 });
     }
 
-    return NextResponse.json({ ok: true, id: data?.id }, { status: 200 });
+    return NextResponse.json({ ok: true }, { status: 200 });
   } catch {
     return NextResponse.json({ error: "Error al registrar reporte" }, { status: 500 });
   }

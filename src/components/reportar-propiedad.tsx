@@ -37,7 +37,7 @@ export function ReportarPropiedad({ propiedadId }: { propiedadId: string }) {
         }),
       });
       const json = await res.json();
-      if (res.ok && json.id) {
+      if (res.ok) {
         setEstado("ok");
       } else {
         setNoDisponible(res.status === 501);

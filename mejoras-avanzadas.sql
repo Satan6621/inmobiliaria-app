@@ -59,6 +59,12 @@ drop policy if exists "reportes_delete_auth" on reportes_propiedades;
 create policy "reportes_delete_auth" on reportes_propiedades
     for delete to authenticated using (true);
 
+-- Permisos mínimos: anon solo inserta (PostgREST devuelve el insert sin SELECT propio);
+-- la lectura y gestión de reportes queda para el asesor autenticado.
+revoke all on reportes_propiedades from anon;
+grant insert on reportes_propiedades to anon;
+grant all on reportes_propiedades to authenticated;
+
 -- Trigger: ocultar propiedad tras 3 reportes en 48 horas
 create or replace function ocultar_propiedad_por_reportes()
 returns trigger as $$
