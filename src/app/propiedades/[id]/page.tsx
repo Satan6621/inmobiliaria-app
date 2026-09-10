@@ -177,7 +177,7 @@ export default async function DetallePropiedadPage({
               <Phone className="w-5 h-5" /> Contactar por WhatsApp
             </a>
             <p className="text-[11px] text-text-muted text-center mt-3">
-              Respuesta inmediata en horario laboral · Asesor de Cojedes
+              Respuesta inmediata en horario laboral · Asesor a nivel nacional
             </p>
           </div>
 

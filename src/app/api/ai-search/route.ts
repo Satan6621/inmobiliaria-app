@@ -1,21 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { buildWhatsAppLink, WHATSAPP_COJEDES } from "@/lib/constants";
+import { buildWhatsAppLink, WHATSAPP_VENEZUELA, ESTADOS_VENEZUELA } from "@/lib/constants";
 
-const VENEZUELA_DB = {
+const VENEZUELA_DB: Record<string, { state: string; zones: string[]; avgPrice: number }> = {
   Valencia: { state: "Carabobo", zones: ["Norte", "Sur", "Ciudad Bonita", "El Pedregal", "La Viña", "Naguanagua", "San Blas", "Tocuyito"], avgPrice: 35000 },
   Caracas: { state: "Distrito Capital", zones: ["Las Mercedes", "Santa Fe", "Chacao", "Altamira", "Los Palos Grandes", "El Hatillo", "Petare", "La California"], avgPrice: 55000 },
   Maracaibo: { state: "Zulia", zones: ["La Conradía", "El Rosario", "Santa Cecilia", "Country Club", "Sebastopol", "Ambrosio"], avgPrice: 30000 },
   Barquisimeto: { state: "Lara", zones: ["Novo Centro", "Quadrimilenario", "Valle Hondo", "Buena Vista", "Santa Rosa"], avgPrice: 28000 },
   Maracay: { state: "Aragua", zones: ["Las Delicias", "San Jacinto", "El Dorado", "La Villa", "Choroni"], avgPrice: 32000 },
   "Puerto Ordaz": { state: "Bolívar", zones: ["Alta Vista", "Vista al Sol", "Unare", "5 de Julio", "Ciudad Guayana"], avgPrice: 40000 },
+  "Ciudad Guayana": { state: "Bolívar", zones: ["Puerto Ordaz", "San Félix", "Unare", "Vista al Sol", "Alta Vista"], avgPrice: 38000 },
   Mérida: { state: "Mérida", zones: ["Los Caciques", "La Cooperativa", "Pueblo Nuevo", "Sambil", "La Parroquia"], avgPrice: 25000 },
   Barcelona: { state: "Anzoátegui", zones: ["Nueva Barcelona", "San Cristóbal", "El Libertador", "Peñalver"], avgPrice: 27000 },
-  "Santa Teresa": { state: "Aragua", zones: ["Alto Paraíso", "La Florida", "San Antonio"], avgPrice: 45000 },
-  "La Victoria": { state: "Aragua", zones: ["Centro", "Ocumare", "Santa Cruz"], avgPrice: 22000 },
+  "Puerto La Cruz": { state: "Anzoátegui", zones: ["La Cruz de la Marina", "Pozuelos", "El Morro", "Redoma"], avgPrice: 34000 },
+  Lechería: { state: "Anzoátegui", zones: ["El Morro", "Los Pinos", "Boyacá", "Avenida Intercomunal"], avgPrice: 46000 },
+  "San Cristóbal": { state: "Táchira", zones: ["Centro", "La Concordia", "Las Pilas", "El Piñonal", "Colón"], avgPrice: 26000 },
+  Cumaná: { state: "Sucre", zones: ["Centro", "Altos de Sucre", "El Peñón", "La Llanada"], avgPrice: 24000 },
+  Maturín: { state: "Monagas", zones: ["Centro", "Los Guaritos", "La Puente", "Brisas del Aeropuerto"], avgPrice: 23000 },
+  Porlamar: { state: "Nueva Esparta", zones: ["Centro", "El Poblado", "La Mira", "Valle de la Piedra"], avgPrice: 36000 },
+  "Pampatar": { state: "Nueva Esparta", zones: ["El Fuerte", "La Caranta", "Los Robles"], avgPrice: 42000 },
+  Coro: { state: "Falcón", zones: ["Centro", "Cerro Marín", "La Pastora", "Los Médanos"], avgPrice: 20000 },
+  "Punto Fijo": { state: "Falcón", zones: ["Centro", "Judibana", "El Cardón", "Las Virtudes"], avgPrice: 18000 },
+  Acarigua: { state: "Portuguesa", zones: ["Centro", "El Bosque", "La Concordia", "Villa Careta"], avgPrice: 21000 },
+  "San Felipe": { state: "Yaracuy", zones: ["Centro", "El Durango", "La Rosaleda", "Las Vegas"], avgPrice: 19000 },
+  "Los Teques": { state: "Miranda", zones: ["Centro", "San Antonio", "La Mariposa", "Carrizal"], avgPrice: 29000 },
+  Guarenas: { state: "Miranda", zones: ["Centro", "Urbanización Las Acacias", "La Múcura", "Topo Bello"], avgPrice: 25000 },
+  Guatire: { state: "Miranda", zones: ["Centro", "Los Naranjos", "La Sabana", "San Pedro"], avgPrice: 26000 },
+  Calabozo: { state: "Guárico", zones: ["Centro", "El Progreso", "La Esperanza", "Miranda"], avgPrice: 17000 },
+  "San Juan de los Morros": { state: "Guárico", zones: ["Centro", "Cantagallo", "La Milagrosa", "Tucupido"], avgPrice: 18000 },
+  "San Fernando de Apure": { state: "Apure", zones: ["Centro", "El Recreo", "La Esperanza", "Palmira"], avgPrice: 16000 },
+  "Ciudad Bolívar": { state: "Bolívar", zones: ["Centro", "Castillito", "Vista Hermosa", "Alta Vista"], avgPrice: 20000 },
   Tinaquillo: { state: "Cojedes", zones: ["Centro de Tinaquillo", "La Campiña", "Villa Italia", "Los Samanes", "Urbanización Miranda", "La Macandona", "Brisas del Sur", "Las Flores", "San Luis"], avgPrice: 14000 },
   "San Carlos": { state: "Cojedes", zones: ["Centro de San Carlos", "Cantaclaro", "La Campiña", "Urbanización El Carmen", "Urbanización Limoncito", "La Aurora", "San Rafael", "El Maracay", "La Guacamaya"], avgPrice: 16000 },
   Tinaco: { state: "Cojedes", zones: ["Tinaco centro", "El Amparo", "La Palma", "Lechozas"], avgPrice: 11000 },
+  Valera: { state: "Trujillo", zones: ["Centro", "La Plata", "El Milagro", "Sabana Grande"], avgPrice: 20000 },
+  Trujillo: { state: "Trujillo", zones: ["Centro", "La Beatriz", "Mercedes Díaz", "Campanas"], avgPrice: 17000 },
+  Boconó: { state: "Trujillo", zones: ["Centro", "La Vega de la Cruz", "San Rafael", "El Silencio"], avgPrice: 19000 },
+  "El Tigre": { state: "Anzoátegui", zones: ["Centro", "Los Samanes", "Vista El Sol", "La Nueva Andalucía"], avgPrice: 20000 },
+  Anaco: { state: "Anzoátegui", zones: ["Centro", "Las Vegas", "Los Pilones", "La Urbanización"], avgPrice: 18000 },
+  Upata: { state: "Bolívar", zones: ["Centro", "La Floresta", "El Mirador", "San Martín"], avgPrice: 19000 },
+  "Puerto Ayacucho": { state: "Amazonas", zones: ["Centro", "El Platanillal", "Barrio Unión", "Los Monos"], avgPrice: 15000 },
+  Tucupita: { state: "Delta Amacuro", zones: ["Centro", "San José", "El Triunfo", "La Manga"], avgPrice: 14000 },
+  "La Guaira": { state: "Vargas", zones: ["Vargas", "Carayaca", "Macuto", "Catia La Mar"], avgPrice: 25000 },
+  Carúpano: { state: "Sucre", zones: ["Centro", "Buenos Aires", "La Marina", "San Martín"], avgPrice: 18000 },
 };
 
 const TIPOS = {
@@ -144,9 +171,31 @@ function parsePrecio(raw: string, unit?: string): number {
   return num;
 }
 
+const PALABRAS_NO_LUGAR = new Set([
+  "venta", "compra", "alquiler", "arriendo", "remate", "remates", "oportunidad", "oportunidades",
+  "barata", "baratas", "barato", "disponible", "urbanizacion", "zona", "cerca", "casa", "casas",
+  "apartamento", "apartamentos", "terreno", "terrenos", "townhouse", "penthouse", "duplex", "quinta",
+  "local", "galpon", "oficina", "estudio", "habitacion", "habitaciones", "busco", "quiero", "necesito",
+  "vendo", "compro", "hasta", "desde", "usd", "dolares", "menos", "mas", "más", "tres", "cuatro",
+  "cinco", "dos", "uno", "para", "con", "sin", "mío", "propiedad", "propiedades", "inmueble",
+]);
+
+function capitalizarLugar(txt: string): string {
+  return txt.replace(/(^|\s)([a-záéíóúüñ])/g, (_t, esp, ch) => esp + ch.toUpperCase());
+}
+
+/** Extrae un lugar genérico cuando la ciudad no está en la base conocida (ej. "el tigre", "pueblo nuevo"). */
+function extraerLugar(q: string): string | undefined {
+  const m = q.match(/(?:en|de|cerca de|hacia)\s+([a-záéíóúüñ]{3,}(?:[\s-]+[a-záéíóúüñ]{3,}){0,4})/);
+  if (!m) return undefined;
+  const palabras = m[1].split(/[\s-]+/).filter((w: string) => !PALABRAS_NO_LUGAR.has(w.toLowerCase()));
+  const limpio = palabras.join(" ");
+  return limpio ? capitalizarLugar(limpio) : undefined;
+}
+
 function parseSearchQuery(query: string) {
   const q = query.toLowerCase();
-  const result: { type?: string; tipoExplicito?: boolean; city?: string; minBeds?: number; minPrice?: number; maxPrice?: number; services?: string[] } = {};
+  const result: { type?: string; tipoExplicito?: boolean; city?: string; state?: string; esLugarLibre?: boolean; minBeds?: number; minPrice?: number; maxPrice?: number; services?: string[] } = {};
 
   // Detect type
   let tipoExplicito = true;
@@ -165,8 +214,24 @@ function parseSearchQuery(query: string) {
       break;
     }
   }
+
+  // Detect state (ej: "casa en cojedes", "terreno en miranda")
   if (!result.city) {
-    result.city = (q.includes("cojedes") || q.includes("san carlos")) ? "San Carlos" : "Tinaquillo";
+    const estadoDetectado = ESTADOS_VENEZUELA.find((e) => q.includes(e.toLowerCase()));
+    if (estadoDetectado) {
+      result.state = estadoDetectado;
+      const capital = Object.keys(VENEZUELA_DB).find((c) => VENEZUELA_DB[c].state === estadoDetectado);
+      if (capital) result.city = capital;
+    }
+  }
+
+  // Detect any other place (small town, district, etc.)
+  if (!result.city) {
+    const lugar = extraerLugar(q);
+    if (lugar) {
+      result.city = lugar;
+      result.esLugarLibre = true;
+    }
   }
 
   // Detect bedrooms
@@ -205,14 +270,19 @@ function franjaDelPrecio(price: number) {
 
 function generateProperties(query: string, count: number = 5) {
   const parsed = parseSearchQuery(query);
-  const city = VENEZUELA_DB[parsed.city as keyof typeof VENEZUELA_DB];
+  const city = parsed.city ? VENEZUELA_DB[parsed.city] : undefined;
+  const lugar = parsed.city || "Venezuela";
+  const estado = parsed.state || city?.state || "Venezuela";
+  const zonas = city?.zones
+    || (parsed.city ? [`${lugar} Centro`, `${lugar} Norte`, "Urbanización Principal", "Zona Sur"]
+      : ["Centro", "Urbanización Principal", "Norte de la ciudad", "Zona Sur"]);
   const tipo = TIPOS[parsed.type as keyof typeof TIPOS] || TIPOS.Apartamento;
   const esTerreno = parsed.type === "Terreno";
   const properties = [];
 
   for (let i = 0; i < count; i++) {
-    const zone = city.zones[Math.floor(Math.random() * city.zones.length)];
-    const basePrice = city.avgPrice * tipo.priceMult;
+    const zone = zonas[Math.floor(Math.random() * zonas.length)];
+    const basePrice = (city?.avgPrice || 30000) * tipo.priceMult;
     let price: number;
     if (parsed.maxPrice) {
       price = Math.floor(parsed.maxPrice * 0.55 + Math.random() * parsed.maxPrice * 0.45);
@@ -241,7 +311,7 @@ function generateProperties(query: string, count: number = 5) {
     properties.push({
       titulo: esTerreno ? `Terreno en ${zone}` : `${parsed.type} ${beds} Hab. en ${zone}`,
       precio: price,
-      ubicacion: `${zone}, ${parsed.city}, ${city.state}, Venezuela`,
+      ubicacion: `${zone}, ${lugar}, ${estado}, Venezuela`,
       tipo: parsed.type,
       telefono: `${phone}-${Math.floor(Math.random() * 9000000) + 1000000}`,
       servicios: services,
@@ -267,8 +337,15 @@ function generateProperties(query: string, count: number = 5) {
 async function buscarEnBase(query: string): Promise<any[]> {
   try {
     const parsed = parseSearchQuery(query);
+    const terminosLugar = [parsed.city, parsed.state].filter(Boolean).map((t) => t!.toLowerCase());
     const ciudad = (parsed.city || "").toLowerCase();
     const resultados: any[] = [];
+
+    function coincideLugar(texto: string): boolean {
+      if (terminosLugar.length === 0) return true;
+      const t = texto.toLowerCase();
+      return terminosLugar.some((tl) => t.split(/[,\s]+/).some((palabra) => palabra.includes(tl)));
+    }
 
     // 1) Catálogo propio (propiedades)
     let q = supabase
@@ -286,8 +363,8 @@ async function buscarEnBase(query: string): Promise<any[]> {
       const texto = [
         p.titulo, p.descripcion, p.direccion_completa,
         p.estado?.nombre, p.municipio?.nombre, p.zona?.nombre,
-      ].filter(Boolean).join(" ").toLowerCase();
-      return !ciudad || texto.includes(ciudad);
+      ].filter(Boolean).join(" ");
+      return coincideLugar(texto);
     });
 
     for (const p of propiedades) {
@@ -298,7 +375,7 @@ async function buscarEnBase(query: string): Promise<any[]> {
       if (p.internet) servicios.push("Internet");
       if (p.piscina) servicios.push("Piscina");
       if (p.garaje) servicios.push("Garaje");
-      const telefono = p.telefono_agente || WHATSAPP_COJEDES;
+      const telefono = p.telefono_agente || WHATSAPP_VENEZUELA;
       const mensaje = `Hola, me interesa ${p.titulo || `la propiedad ${p.codigo || ""}`}${p.codigo ? ` (#${p.codigo})` : ""}. ¿Sigue disponible?`;
       resultados.push({
         titulo: p.titulo || (p.codigo ? `Propiedad ${p.codigo}` : "Propiedad disponible"),
@@ -333,8 +410,8 @@ async function buscarEnBase(query: string): Promise<any[]> {
     const prospectos = (pros || []).filter((p: any) => {
       if (parsed.maxPrice && p.precio_usd > parsed.maxPrice) return false;
       if (parsed.minPrice && p.precio_usd < parsed.minPrice) return false;
-      const texto = `${p.titulo || ""} ${p.detalle || ""} ${p.zona || ""}`.toLowerCase();
-      return !ciudad || texto.includes(ciudad);
+      const texto = `${p.titulo || ""} ${p.detalle || ""} ${p.zona || ""}`;
+      return coincideLugar(texto);
     });
 
     for (const pr of prospectos.slice(0, 8)) {

@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { buildWhatsAppLink, WHATSAPP_COJEDES } from "./constants";
+import { buildWhatsAppLink, WHATSAPP_VENEZUELA } from "./constants";
 
 export interface ImagenPropiedad {
   url_imagen: string;
@@ -118,5 +118,5 @@ export function whatsappPropiedad(p: PropiedadPublica): string {
   const mensaje = `Hola, me interesa ${p.titulo || `la propiedad ${p.codigo || ""}`}` +
     `${p.codigo ? ` (#${p.codigo})` : ""}` +
     `${p.precio ? ` a $${p.precio.toLocaleString("es-VE")}` : ""}. ¿Sigue disponible?`;
-  return buildWhatsAppLink(WHATSAPP_COJEDES, mensaje);
+  return buildWhatsAppLink(WHATSAPP_VENEZUELA, mensaje);
 }

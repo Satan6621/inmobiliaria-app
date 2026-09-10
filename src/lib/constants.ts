@@ -1,4 +1,5 @@
 export const ZONAS_DISPONIBLES: Record<string, string> = {
+  "Toda Venezuela": "Venezuela",
   "Cojedes (San Carlos, Tinaquillo)": "Cojedes",
   "Carabobo (Valencia, San Diego, Naguanagua, Los Guayos)": "Valencia Carabobo",
   "Caracas (Distrito Capital)": "Caracas",
@@ -66,14 +67,7 @@ export const ZONAS_POR_MUNICIPIO: Record<string, string[]> = {
 
 /** Código de cartera por estado: COJ-101, CAR-102, MIR-103... */
 export function generarCodigoCartera(estado: string, contador: number, listaExistente: string[] = []): string {
-  const abrev: Record<string, string> = {
-    Cojedes: "COJ", Carabobo: "CAR", "Distrito Capital": "CCS", Miranda: "MIR",
-    Aragua: "ARG", Lara: "LAR", Zulia: "ZUL", Anzoátegui: "ANZ", Bolívar: "BOL",
-    Falcón: "FAL", Mérida: "MER", Táchira: "TAC", Trujillo: "TRU", Yaracuy: "YAR",
-    Guárico: "GUA", Monagas: "MON", Sucre: "SUC", "Nueva Esparta": "NVA",
-    Amazonas: "AMA", "Delta Amacuro": "DEL", Vargas: "VAR",
-  };
-  const prefijo = abrev[estado] || "VEN";
+  const prefijo = ABREVIATURAS_ESTADOS[estado] || "VEN";
 
   const usados = new Set(
     listaExistente
@@ -123,8 +117,17 @@ export const ESTADOS_SOLICITUD = ["NUEVA", "CONTACTADA", "PROMOVIDA", "DESCARTAD
 
 export const TIPOS_INMUEBLE = ["Apartamento", "Casa", "Townhouse", "Terreno", "Galpón", "Oficina/Local"] as const;
 
-/** Número de WhatsApp del asesor: 58 + 41234567 (sin el 0 inicial) */
-export const WHATSAPP_COJEDES = "584129519234";
+/** Número de WhatsApp del asesor a nivel nacional: 58 + 41234567 (sin el 0 inicial) */
+export const WHATSAPP_VENEZUELA = "584129519234";
+
+/** Prefijos de cartera por estado: COJ-101, CAR-102, MIR-103... */
+export const ABREVIATURAS_ESTADOS: Record<string, string> = {
+  Cojedes: "COJ", Carabobo: "CAR", "Distrito Capital": "CCS", Miranda: "MIR",
+  Aragua: "ARG", Lara: "LAR", Zulia: "ZUL", Anzoátegui: "ANZ", Bolívar: "BOL",
+  Falcón: "FAL", Mérida: "MER", Táchira: "TAC", Trujillo: "TRU", Yaracuy: "YAR",
+  Guárico: "GUA", Monagas: "MON", Sucre: "SUC", "Nueva Esparta": "NVA",
+  Amazonas: "AMA", "Delta Amacuro": "DEL", Vargas: "VAR",
+};
 
 /** Convierte un teléfono venezolano suelto a un link wa.me */
 export function buildWhatsAppLink(telefono: string | null | undefined, mensaje?: string): string {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseWithToken } from "@/lib/supabase";
-import { buildWhatsAppLink, WHATSAPP_COJEDES } from "@/lib/constants";
+import { buildWhatsAppLink, WHATSAPP_VENEZUELA, ABREVIATURAS_ESTADOS } from "@/lib/constants";
 import { notificarLeadTelegram } from "@/lib/telegram";
 
 function sbFor(request: NextRequest) {
@@ -93,7 +93,7 @@ async function coincidenciasParaComprador(
       titulo_match: p.titulo || p.codigo || "Propiedad",
       precio_match: p.precio,
       zona_match: p.direccion_completa || p.descripcion || "",
-      contacto_match: p.telefono_agente || WHATSAPP_COJEDES,
+      contacto_match: p.telefono_agente || WHATSAPP_VENEZUELA,
     });
     if (!error) creadas++;
   }
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
         precio: body.precio || null,
         presupuesto_min: body.presupuesto_min || null,
         presupuesto_max: body.presupuesto_max || null,
-        estado: body.estado || "Cojedes",
+        estado: body.estado || "Venezuela",
         zona: body.zona || "",
         habitaciones: body.habitaciones || 0,
         banos: body.banos || 0,
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
         precio: body.precio || null,
         presupuesto_min: body.presupuesto_min || null,
         presupuesto_max: body.presupuesto_max || null,
-        estado: body.estado || "Cojedes",
+        estado: body.estado || "Venezuela",
         zona: body.zona || "",
         habitaciones: body.habitaciones || 0,
         banos: body.banos || 0,
@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
         tipo,
         nombre,
         telefono,
-        estado: body.estado || "Cojedes",
+        estado: body.estado || "Venezuela",
         zona: body.zona || "",
         tipoInmueble: body.tipo_inmueble || "Apartamento",
         precio: body.precio || body.presupuesto_max || null,
@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
       tipo,
       nombre,
       telefono,
-      estado: data?.estado || body.estado || "Cojedes",
+      estado: data?.estado || body.estado || "Venezuela",
       zona: data?.zona || body.zona || "",
       tipoInmueble: data?.tipo_inmueble || body.tipo_inmueble || "Apartamento",
       precio: data?.precio || data?.presupuesto_max || null,
@@ -284,7 +284,7 @@ export async function PATCH(request: NextRequest) {
       const { data: estadoRow } = await sb
         .from("estados")
         .select("id")
-        .eq("nombre", solicitud.estado || "Cojedes")
+        .eq("nombre", solicitud.estado || "Venezuela")
         .maybeSingle();
       const { data: municipioRow } = estadoRow
         ? await sb
@@ -301,8 +301,7 @@ export async function PATCH(request: NextRequest) {
         .select("id", { count: "exact", head: true })
         .eq("estado_id", estadoRow?.id || 0);
 
-      const abrev: Record<string, string> = { Cojedes: "COJ" };
-      const codigo = `${abrev[solicitud.estado] || "VEN"}-${100 + ((count || 0) % 900)}`;
+      const codigo = `${ABREVIATURAS_ESTADOS[solicitud.estado] || "VEN"}-${100 + ((count || 0) % 900)}`;
 
       const { data: propiedad, error } = await sb
         .from("propiedades")
@@ -316,7 +315,7 @@ export async function PATCH(request: NextRequest) {
           banos: solicitud.banos || 0,
           metros_cuadrados: solicitud.metros || null,
           nombre_agente: "Asesor",
-          telefono_agente: WHATSAPP_COJEDES,
+          telefono_agente: WHATSAPP_VENEZUELA,
           estado_id: estadoRow?.id || null,
           municipio_id: municipioRow?.id || null,
           direccion_completa: `${solicitud.zona || ""}, ${solicitud.estado}`,

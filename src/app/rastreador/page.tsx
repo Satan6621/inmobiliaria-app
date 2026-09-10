@@ -59,18 +59,18 @@ interface FeedItem {
 const TIPOS_INMUEBLE = ["Todos", "Apartamento", "Casa", "Townhouse", "Terreno", "Galpón", "Local"];
 
 const FEED_SIMULADO: FeedItem[] = [
-  { id: "1", titulo: "Apartamento 3hab en San Carlos", precio: 28000, zona: "Cojedes", tipo: "Apartamento", fecha: "Ahora", esBajada: false },
-  { id: "2", titulo: "Casa con jardín en Tinaquillo", precio: 45000, precioAnterior: 52000, zona: "Cojedes", tipo: "Casa", fecha: "Hace 2min", esBajada: true },
-  { id: "3", titulo: "Terreno 200m² Valencia", precio: 15000, zona: "Carabobo", tipo: "Terreno", fecha: "Hace 5min", esBajada: false },
+  { id: "1", titulo: "Apartamento 3hab en Valencia", precio: 28000, zona: "Carabobo", tipo: "Apartamento", fecha: "Ahora", esBajada: false },
+  { id: "2", titulo: "Casa con jardín en Los Teques", precio: 45000, precioAnterior: 52000, zona: "Miranda", tipo: "Casa", fecha: "Hace 2min", esBajada: true },
+  { id: "3", titulo: "Terreno 200m² en Mérida", precio: 15000, zona: "Mérida", tipo: "Terreno", fecha: "Hace 5min", esBajada: false },
   { id: "4", titulo: "PH en Chacao, 2hab", precio: 85000, precioAnterior: 92000, zona: "Miranda", tipo: "Penthouse", fecha: "Hace 8min", esBajada: true },
   { id: "5", titulo: "Casa en Barquisimeto", precio: 35000, zona: "Lara", tipo: "Casa", fecha: "Hace 12min", esBajada: false },
   { id: "6", titulo: "Local comercial en Maracaibo", precio: 62000, precioAnterior: 68000, zona: "Zulia", tipo: "Local", fecha: "Hace 15min", esBajada: true },
-  { id: "7", titulo: "Townhouse en Naguanagua", precio: 42000, zona: "Carabobo", tipo: "Townhouse", fecha: "Hace 18min", esBajada: false },
+  { id: "7", titulo: "Townhouse en San Cristóbal", precio: 42000, zona: "Táchira", tipo: "Townhouse", fecha: "Hace 18min", esBajada: false },
   { id: "8", titulo: "Apartamento en Lechería", precio: 55000, precioAnterior: 59000, zona: "Anzoátegui", tipo: "Apartamento", fecha: "Hace 22min", esBajada: true },
 ];
 
 export default function RastreadorPage() {
-  const [zonasSeleccionadas, setZonasSeleccionadas] = useState<string[]>(["Cojedes (San Carlos, Tinaquillo)"]);
+  const [zonasSeleccionadas, setZonasSeleccionadas] = useState<string[]>(["Toda Venezuela"]);
   const [rolesSeleccionados, setRolesSeleccionados] = useState<string[]>(["vendedor", "comprador"]);
   const [filtrarPrecio, setFiltrarPrecio] = useState(false);
   const [precioMin, setPrecioMin] = useState(8000);
@@ -101,7 +101,7 @@ export default function RastreadorPage() {
           titulo: item.titulo || "Nueva propiedad",
           precio: Number(item.precio || 0),
           precioAnterior: item.precioAnterior || undefined,
-          zona: "Cojedes",
+          zona: "Venezuela",
           tipo: item.tipo_inmueble || "Apartamento",
           fecha: new Date(item.created_at || Date.now()).toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit" }),
           esBajada: false,
@@ -117,13 +117,13 @@ export default function RastreadorPage() {
     if (!nuevoFeedItem) return;
     if (nuevoFeedItem.esBajada) {
       setFeed((prev) => [
-        { ...nuevoFeedItem, zona: nuevoFeedItem.zona || "Cojedes", fecha: "Ahora", tipo: nuevoFeedItem.tipo || "Apartamento" },
+        { ...nuevoFeedItem, zona: nuevoFeedItem.zona || "Venezuela", fecha: "Ahora", tipo: nuevoFeedItem.tipo || "Apartamento" },
         ...prev.filter((f) => f.id !== nuevoFeedItem.id),
       ].slice(0, 20));
       return;
     }
     setFeed((prev) => [
-      { ...nuevoFeedItem, zona: nuevoFeedItem.zona || "Cojedes", fecha: "Ahora", tipo: nuevoFeedItem.tipo || "Apartamento" },
+      { ...nuevoFeedItem, zona: nuevoFeedItem.zona || "Venezuela", fecha: "Ahora", tipo: nuevoFeedItem.tipo || "Apartamento" },
       ...prev.filter((f) => f.id !== nuevoFeedItem.id),
     ].slice(0, 20));
 

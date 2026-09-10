@@ -119,7 +119,7 @@ export function usePropiedadesFeed(enabled = true) {
           lastEvent.eventType === "UPDATE"
             ? Number(lastEvent.old?.precio || 0)
             : undefined,
-        zona: ["Cojedes", "Carabobo", "Miranda", "Lara", "Zulia", "Anzoátegui"][
+        zona: ["Trujillo", "Carabobo", "Miranda", "Lara", "Zulia", "Anzoátegui"][
           Math.floor(Math.random() * 6)
         ],
         tipo: lastEvent.new?.tipo_inmueble || "Apartamento",

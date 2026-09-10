@@ -2,9 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { MessageCircle, X } from "lucide-react";
-
-// Número de WhatsApp del asesor de Cojedes (configurable)
-const WHATSAPP_COJEDES = "584129519234";
+import { WHATSAPP_VENEZUELA } from "@/lib/constants";
 
 interface WhatsAppButtonProps {
   phone?: string;
@@ -24,7 +22,7 @@ export function WhatsAppButton({ phone, message, property }: WhatsAppButtonProps
     : "Hola, estoy interesado en una propiedad vista en la app. ¿Puede darme más información?";
 
   const text = message || defaultMessage;
-  const cleanPhone = phone?.replace(/[^0-9]/g, "") || WHATSAPP_COJEDES;
+  const cleanPhone = phone?.replace(/[^0-9]/g, "") || WHATSAPP_VENEZUELA;
   const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
 
   return (
@@ -50,7 +48,7 @@ export function WhatsAppFloat() {
   }, []);
 
   const buildUrl = (mensaje: string) =>
-    `https://wa.me/${WHATSAPP_COJEDES}?text=${encodeURIComponent(mensaje)}`;
+    `https://wa.me/${WHATSAPP_VENEZUELA}?text=${encodeURIComponent(mensaje)}`;
 
   const mensajes = {
     interesado: ultimoCodigo
@@ -69,7 +67,7 @@ export function WhatsAppFloat() {
           <div className="flex items-center justify-between mb-3">
             <div>
               <h4 className="text-sm font-semibold text-text-primary">¿Cómo te ayudamos?</h4>
-              <p className="text-xs text-text-muted">Asesor de Cojedes</p>
+              <p className="text-xs text-text-muted">Asesor a nivel nacional</p>
             </div>
             <button onClick={() => setOpen(false)} className="text-text-muted hover:text-text-primary">
               <X className="w-4 h-4" />

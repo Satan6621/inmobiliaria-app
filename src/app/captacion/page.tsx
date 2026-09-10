@@ -17,7 +17,7 @@ const camposIniciales = {
   precio: "",
   presupuesto_min: "",
   presupuesto_max: "",
-  estado: "Cojedes",
+  estado: "Distrito Capital",
   zona: "",
   habitaciones: "3",
   banos: "2",
@@ -113,7 +113,7 @@ export default function CaptacionPage() {
         {[
           { icon: ShieldCheck, titulo: "Asesoría directa", texto: "Te atendemos de forma personalizada, sin intermediarios." },
           { icon: Clock3, titulo: "Respuesta rápida", texto: "Contactamos contigo por WhatsApp en el día." },
-          { icon: MapPin, titulo: "Cobertura nacional", texto: "Nos especializamos en Cojedes y toda Venezuela." },
+          { icon: MapPin, titulo: "Cobertura nacional", texto: "Atendemos vendedores y compradores en toda Venezuela." },
         ].map((c) => (
           <div key={c.titulo} className="glass-card p-4 flex items-start gap-3">
             <c.icon className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
@@ -188,7 +188,7 @@ export default function CaptacionPage() {
               </label>
               <input type="text" value={form.zona}
                 onChange={(e) => change("zona", e.target.value)}
-                placeholder="Ej. Tinaquillo, San Carlos, Valencia..."
+                placeholder="Ej. Valencia, Caracas, Maracaibo, Mérida..."
                 className="input-field w-full" />
             </div>
           </div>
@@ -250,7 +250,7 @@ export default function CaptacionPage() {
               placeholder={
                 modo === "vender"
                   ? "Ej. Casa en La Campiña con piscina, 3 habitaciones, pozo propio..."
-                  : "Ej. Busco una casa de 3 habitaciones en Tinaquillo hasta $15.000..."
+                  : "Ej. Busco una casa de 3 habitaciones en Valencia hasta $15.000..."
               }
               className="input-field w-full min-h-[90px] resize-none" />
           </div>

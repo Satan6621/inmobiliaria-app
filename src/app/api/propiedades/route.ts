@@ -8,6 +8,7 @@ function sbFor(request: NextRequest) {
 }
 
 const ZONAS_POR_ESTADO: Record<string, string[]> = {
+  Venezuela: ["Caracas", "Valencia", "Maracaibo", "Barquisimeto", "Maracay"],
   Cojedes: ["San Carlos", "Tinaquillo", "Anzoátegui", "Girardot", "Tinaco"],
   Carabobo: ["Valencia", "Naguanagua", "San Diego", "Los Guayos"],
   Miranda: ["Chacao", "Baruta", "El Hatillo", "San Antonio"],
@@ -49,6 +50,7 @@ export async function GET(request: NextRequest) {
 
 function generarCodigoEstado(nombreEstado: string, contador: number): string {
   const abrev: Record<string, string> = {
+    Venezuela: "VEN",
     Cojedes: "COJ", Carabobo: "CAR", Miranda: "MIR", Aragua: "ARG",
     Lara: "LAR", Zulia: "ZUL", Anzoátegui: "ANZ", "Distrito Capital": "CCS",
     Bolívar: "BOL", "Nueva Esparta": "NVA", Mérida: "MER", Táchira: "TAC",
@@ -63,8 +65,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const sb = sbFor(request);
-    const estado = body.estado || "Cojedes";
-    const municipios = ZONAS_POR_ESTADO[estado] || ["San Carlos"];
+    const estado = body.estado || "Venezuela";
+    const municipios = ZONAS_POR_ESTADO[estado] || [];
 
     // Obtener ids geográficos
     const { data: estadoRow } = await sb.from("estados").select("id").eq("nombre", estado).maybeSingle();

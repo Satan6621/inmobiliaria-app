@@ -112,7 +112,7 @@ export function AISearch() {
         )}
 
         <div className="mt-3 flex flex-wrap gap-2">
-          {["Apartamento en Valencia", "Casa en Tinaquillo menos de $10.000", "Casas baratas desde $5.000", "Terreno Mérida", "Townhouse 4 habitaciones"].map((suggestion) => (
+          {["Apartamento en Valencia", "Casa en Maracaibo menos de $20.000", "Casas baratas desde $5.000", "Terreno en Mérida", "Townhouse 4 habitaciones"].map((suggestion) => (
             <button
               key={suggestion}
               onClick={() => { setQuery(suggestion); }}

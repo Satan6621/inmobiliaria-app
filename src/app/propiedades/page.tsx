@@ -16,10 +16,10 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Catálogo de Propiedades | Venezuela Inmobiliaria",
   description:
-    "Compra y venta de propiedades en Venezuela: casas, apartamentos, terrenos y más en Cojedes y todo el país. Contáctanos por WhatsApp.",
+    "Compra y venta de propiedades en toda Venezuela: casas, apartamentos, terrenos y más. Filtra por estado y contáctanos por WhatsApp.",
 };
 
-const ESTADOS_FILTRO = ESTADOS_VENEZUELA.slice(0, 12);
+const ESTADOS_FILTRO = ESTADOS_VENEZUELA;
 
 async function Card({ p }: { p: PropiedadPublica }) {
   const img = imagenPrincipal(p);
@@ -145,7 +145,7 @@ export default async function CatalogoPage({
           Catálogo de <span className="text-primary">Propiedades</span>
         </h1>
         <p className="text-lg text-text-secondary max-w-2xl mx-auto">
-          Descubre casas, apartamentos y terrenos disponibles. Filtra por tipo, ubicación y
+          Descubre casas, apartamentos y terrenos en todo el país. Filtra por tipo, estado y
           precio, y escribe directo por WhatsApp.
         </p>
       </div>
