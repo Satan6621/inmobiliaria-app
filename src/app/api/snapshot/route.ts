@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
-export const revalidate = 300;
+// Datos SIEMPRE frescos: el Service Worker y localStorage absorben las
+// descargas repetidas en el cliente, así que la caché ISR aquí solo
+// serviría datos obsoletos (precios/estatus cambiados sin reflejar).
+export const dynamic = "force-dynamic";
 
 /**
  * Snapshot compacto para modo offline: datos planos esenciales de TODAS
